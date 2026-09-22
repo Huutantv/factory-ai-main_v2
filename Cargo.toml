@@ -1,0 +1,170 @@
+[package]
+name = "fauto"
+version = "1.7.7"
+edition = "2021"
+description = "F.Auto first-party agentic coding CLI — OpenAI-compatible, hermes-style provider-agnostic API client"
+license = "Apache-2.0"
+repository = "https://github.com/Huutantv/factory-ai"
+homepage = "https://github.com/Huutantv/factory-ai"
+documentation = "https://github.com/Huutantv/factory-ai#readme"
+readme = "README.md"
+keywords = ["agent", "cli", "llm", "coding-assistant", "openai"]
+categories = ["command-line-utilities", "development-tools"]
+
+# F.Auto is the user-facing command; the package name is `fauto` too.
+[[bin]]
+name = "fauto"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "io-util", "process", "time", "signal", "sync", "net"] }
+# rustls-tls (pure-Rust TLS) so we don't need native OpenSSL on the Windows GNU toolchain
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
+futures-util = "0.3"
+eventsource-stream = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+# Memory subsystem (all pure-Rust / static — preserves single-binary, rustls-only posture)
+regex = "1"
+once_cell = "1"
+# Fuzzy near-match bridge for the BM25 lexical floor (P6.5/P7): Jaro-Winkler over tokens to
+# catch typos / morphology the diacritic fix doesn't cover. Pure-Rust, zero deps, tiny —
+# single static binary preserved.
+strsim = "0.11"
+# NFC Unicode normalization for the tokenizer (Vietnamese diacritics, P6). ALREADY in the
+# dependency tree via url→idna→idna_adapter with `compiled_data` (icu_normalizer_data is
+# linked), so declaring it as a direct dep is ZERO marginal binary cost and keeps the
+# pure-Rust single static binary (objdump-clean). Verified vs Cargo.lock 2026-06-25.
+icu_normalizer = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# Interactive landing menu (`fauto` with no args): arrow-key select + colors + hidden key entry.
+# Pure-Rust (console → windows-sys on Windows), keeps the single static binary. `password`
+# adds the hidden API-key prompt; default features dropped to stay lean.
+dialoguer = { version = "0.11", default-features = false, features = ["password"] }
+# Colored banner output (dialoguer's companion; already in the tree → no extra binary cost).
+# Enables Windows VT + honors NO_COLOR / non-TTY automatically.
+console = "0.15"
+# Pure-Rust PNG decode/encode. Used unconditionally now: the feature cards are baked as PNG and
+# re-encoded to sixel at the terminal's exact pixel size at runtime (cover-crop fullscreen), which
+# must work on every sixel-capable platform (incl. Linux), not just Windows/macOS. Also backs the
+# clipboard image encode in `image_input`. Pure-Rust → single static binary preserved.
+png = "0.17"
+# Retained full-frame TUI — the only interactive backend (the classic ANSI/console renderer is gone).
+# Both crates are pure Rust; the non-TTY path falls back to the plain line-REPL and never starts it.
+# Ratatui owns layout/cell diffing; crossterm owns raw input, alternate-screen lifecycle, focus and
+# resize events. Keep the direct Windows binding below pinned at windows-sys 0.59.
+ratatui = { version = "0.30", default-features = false, features = ["crossterm_0_29"] }
+crossterm = { version = "0.29", features = ["event-stream"] }
+# Full-message retained Markdown parser. The existing dependency-free MarkdownStream remains the
+# classic/one-shot renderer; retained mode reparses the active raw message for correctness.
+pulldown-cmark = { version = "0.12", default-features = false }
+
+# URL parsing/joining for the katana-style crawler (resolve relative links, host/scope checks).
+# Pure-Rust, no native deps → single static binary preserved.
+url = "2"
+# First-party content search (`search_files`): ripgrep's OWN directory-walk crate — respects
+# .gitignore, skips hidden dirs, has a built-in glob override (globset, pulled transitively). Paired
+# with the `regex` crate already in the tree for line matching. This is the exact pure-Rust walker rg
+# is built on — no C/C++ → single static binary preserved. Removes the "rg must be on PATH" footgun.
+ignore = "0.4"
+# MCP remote-app OAuth 2.1 (PKCE S256) — lets `fauto apps` sign into Linear/Notion/Slack/Gmail/Atlassian
+# the way Hermes does (the apps people actually want, all OAuth-only). `ring` (SHA-256 for the PKCE
+# challenge + a CSPRNG) and `getrandom` are BOTH already in the dependency tree via reqwest→rustls
+# (verified vs Cargo.lock 2026-06-27), so declaring them direct is ZERO marginal binary cost and adds
+# NO new C toolchain requirement (rustls already links ring). base64url is hand-rolled (no dep). The
+# loopback redirect catcher uses tokio's `net` feature (added above) — still one pure-Rust static binary.
+ring = "0.17"
+getrandom = "0.2"
+
+# Dense semantic tier (P5) — OPT-IN only. The default build stays pure-Rust (lexical floor).
+# `local-only` drops hf-hub/TLS so models load from a local dir we manage. We do NOT enable
+# model2vec-rs's own `fancy-regex`/`onig` features: BOTH hard-wire `tokenizers/esaxx_fast`,
+# which pulls `esaxx-rs/cpp` → a C++ `cc` build step (breaks no-C-dep). Instead we satisfy
+# `tokenizers`' "need onig OR fancy-regex" compile-gate by depending on `tokenizers` DIRECTLY
+# with only its pure-Rust `fancy-regex` backend (NOT esaxx_fast). Cargo feature unification
+# then gives the shared `tokenizers` `fancy-regex` WITHOUT esaxx_fast → no C++ toolchain.
+model2vec-rs = { version = "0.2", optional = true, default-features = false, features = ["local-only"] }
+tokenizers = { version = "0.21", optional = true, default-features = false, features = ["fancy-regex"] }
+
+# WebSocket client — used by (a) the Discord two-way bot gateway (`wss://`, needs TLS) and (b) the
+# opt-in CDP browser tools (`ws://localhost`, no TLS). `rustls-tls-webpki-roots` reuses the
+# `tokio-rustls`/`rustls`/`webpki-roots` already pulled by reqwest (verified in Cargo.lock) → ZERO
+# new crates, ZERO `*-sys`/openssl, NO C toolchain. Pure-Rust single static binary preserved. We
+# NEVER bundle a browser engine (servo/CEF = C++) and NEVER use a Discord SDK (serenity = heavy dep).
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+
+# LSP client (symbol navigation: find-references / go-to-definition / document & workspace symbols),
+# default-OFF at runtime (AgentConfig.enable_lsp) and spawned lazily per project language. async-lsp
+# is the only mature pure-Rust crate that supports the CLIENT direction on tokio: it gives the client
+# `MainLoop` + request/response-id correlation + tower layers (Concurrency w/ cancellation,
+# CatchUnwind panic-isolation, Lifecycle ordering), and pulls `lsp-types` (protocol structs)
+# transitively — so we don't hand-roll JSON-RPC framing/correlation. Server-binary discovery
+# (PATH + Windows PATHEXT, node servers ship as `.cmd` shims) is hand-rolled in lsp/discovery.rs —
+# the `which` crate was dropped because its `winsafe` dep links `ktmw32`, which the windows-gnu
+# toolchain's slim self-contained MinGW can't resolve. `url` (declared above) does Windows
+# path<->`file://` URI. All pure-Rust → single static binary preserved.
+async-lsp = { version = "0.2", features = ["tokio"] }
+# Adapts tokio child-process pipes (tokio::io::Async{Read,Write}) into the futures-io traits that
+# async-lsp's `MainLoop::run_buffered` expects. `compat` feature only → no extra surface.
+tokio-util = { version = "0.7", default-features = false, features = ["compat"] }
+# `Layer` trait so we can wrap the LSP client router in async-lsp's CatchUnwind middleware (a panic
+# in a handler becomes an error response instead of killing the MainLoop). Trait-only crate, ALREADY
+# in the tree via async-lsp → zero marginal cost.
+tower-layer = "0.3"
+# Gzip decompression for the reach layer's StackExchange backend (api.stackexchange.com compresses
+# every response unconditionally). `rust_backend` = miniz_oxide, pure Rust — NO C zlib (this machine
+# has no C toolchain, and the single-static-binary posture must hold). flate2 + miniz_oxide are
+# ALREADY in the dependency tree (verified vs Cargo.lock 2026-07-05) → zero marginal binary cost.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+[features]
+# Enable the model2vec semantic embedder. Build: `cargo build --features dense`.
+dense = ["dep:model2vec-rs", "dep:tokenizers"]
+# Enable the CDP browser tools (browser_navigate/snapshot/click/type/eval). Build: `cargo build --features browser`.
+# (`tokio-tungstenite` is now a base dep — the Discord bot needs it — so this just gates the tools.)
+browser = []
+
+# Release profile is tuned for a small, hard-to-reverse binary (the CI runners build this; the local
+# windows-gnu toolchain can't do an optimized build — see the repo notes). `panic` is deliberately
+# left at the default `unwind`: async-lsp's CatchUnwind middleware and per-task panic isolation rely
+# on unwinding, so `panic = "abort"` would let one LSP/tool panic tear down the whole process.
+[profile.release]
+opt-level = 3
+lto = "fat"          # aggressive cross-crate inlining dissolves function boundaries (harder to trace)
+codegen-units = 1    # one unit → more inlining, smaller output (slower link; CI absorbs it)
+strip = true         # drop the symbol table + debug info (no function names for a disassembler)
+debug = false
+
+# Image (vision) input — encode a pasted clipboard image into a data URL for OpenAI-compatible
+# vision models (paste a screenshot straight into the chat box with Ctrl-V). Clipboard access is
+# DESKTOP-ONLY: `arboard` needs X11/Wayland libraries on Linux at runtime, which would break the
+# headless single static binary that `fauto serve` ships as — so only the clipboard grab is
+# target-gated to Windows/macOS (the PNG encode of its RGBA pixels uses the now-unconditional `png`
+# dep above). arboard is pure-Rust there (clipboard-win links only system DLLs), so the
+# single-static-binary posture holds (objdump-verified). Linux/headless builds don't pull arboard.
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+arboard = { version = "3", default-features = false, features = ["image-data"] }
+
+# Windows Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) so killing a node-based language server
+# (`typescript-language-server.cmd` → cmd.exe → node.exe) reaps the WHOLE process tree —
+# TerminateProcess/kill_on_drop alone would orphan the real node process. windows-sys is ALREADY in
+# the dependency tree (console/dialoguer/tokio pull it) → zero new crates, pure bindings, single
+# static binary preserved. PINNED to 0.59: 0.60+ switched to `windows-link` raw-dylib linking, which
+# needs MinGW `dlltool.exe` on the *-windows-gnu toolchain (not present here); 0.59 ships classic
+# prebuilt import libs and builds everywhere.
+[target.'cfg(windows)'.dependencies]
+# Features cover: Job Objects (LSP tree-kill), console mode restore (TUI), atomic MoveFileEx +
+# ACL owner-only writes (persist), exclusive file locks (repo_lock), reparse-point checks (TM).
+# PINNED to 0.59 — see comment above. Do NOT promote this to a target-agnostic dep.
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Console",
+    "Win32_System_IO",
+    "Win32_System_JobObjects",
+    "Win32_System_Registry",
+] }

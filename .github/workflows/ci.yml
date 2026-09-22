@@ -1,0 +1,70 @@
+name: ci
+
+# Build + test on every push to main or dev and on every pull request, so contributors get fast
+# feedback and a PR can't merge red. Pure-Rust single static binary — no C toolchain needed. Uses
+# the built-in GITHUB_TOKEN only; runs on forks' PRs too (pull_request, not pull_request_target —
+# no secrets exposed to untrusted code).
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: build + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS is here for the sandbox backend (Seatbelt) as much as for the build: the sandbox
+        # test suite exercises Landlock/seccomp on Linux and sandbox-exec on macOS — platforms the
+        # maintainer's Windows machine cannot runtime-verify.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: rustc -V && cargo -V
+
+      - name: Cache cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build
+        run: cargo build --bin fauto
+
+      - name: Test
+        run: cargo test --bin fauto
+
+      # What the sandbox can actually enforce on THIS runner, in the job log — the per-platform
+      # capability matrix in docs/SANDBOX.md is checked against these outputs at release time.
+      - name: Sandbox capability probe
+        run: cargo run --bin fauto -- sandbox doctor --json
+
+  lint:
+    name: fmt + clippy (advisory)
+    runs-on: ubuntu-latest
+    # Advisory only: the tree carries pre-existing warnings, so this surfaces fmt/clippy findings
+    # without gating merges. Contributors are asked to clear anything THEY introduce (see CONTRIBUTING).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Components
+        run: rustup component add rustfmt clippy
+      - name: Format check
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --bin fauto
