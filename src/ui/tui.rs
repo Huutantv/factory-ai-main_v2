@@ -1496,6 +1496,17 @@ fn tool_state(outcome: ToolOutcome) -> retained::ToolState {
     }
 }
 
+/// Display form of a tool name for the transcript: first letter capitalised
+/// (`file_read` → `File_read`). The wire/protocol name stays snake_case lowercase;
+/// only the rendered label changes.
+pub fn display_name(name: &str) -> String {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
 /// Open a tool-call line (`⚙ name   target`) with no digest yet. Returns a `seq` to pass back to
 /// [`tool_call_end`] so the result lands on the same line under retained. On the classic path this
 /// renders nothing (the append-only surface can't update a line in place) — the full line is drawn
@@ -1506,7 +1517,7 @@ pub fn tool_call_begin(icon: &str, name: &str, target: &str) -> u64 {
         retained::tool_event(retained::ToolEvent {
             seq,
             icon: icon.to_string(),
-            name: name.to_string(),
+            name: display_name(name),
             target: target.to_string(),
             digest: String::new(),
             state: retained::ToolState::Running,
@@ -1532,7 +1543,7 @@ pub fn tool_call_end(
     let ev = retained::ToolEvent {
         seq,
         icon: icon.to_string(),
-        name: name.to_string(),
+        name: display_name(name),
         target: target.to_string(),
         digest: digest.to_string(),
         state: tool_state(outcome),

@@ -3312,17 +3312,18 @@ fn relevance_query_from_args(args: &serde_json::Value) -> String {
 fn tool_call_line(name: &str, args: &serde_json::Value) -> String {
     let icon = tool_icon(name);
     let target = tool_target(name, args);
+    let name = crate::ui::tui::display_name(name);
     if target.is_empty() {
         format!(
             "{} {}",
             crate::ui::theme::accent(icon),
-            crate::ui::theme::accent(name)
+            crate::ui::theme::accent(&name)
         )
     } else {
         format!(
             "{} {}   {}",
             crate::ui::theme::accent(icon),
-            crate::ui::theme::accent(name),
+            crate::ui::theme::accent(&name),
             crate::ui::theme::accent_dim(target)
         )
     }
@@ -5259,13 +5260,14 @@ mod tests {
     // ── display: the ◆ call line + ⎿ result summary ─────────────────────────
     #[test]
     fn tool_call_line_shows_raw_name_then_target() {
-        // The mockup shape: `<icon> <raw tool_name>   <target>` — raw tool id first, salient target
-        // after (a basename here), no English verb and no parenthesised footnote.
+        // The mockup shape: `<icon> <Tool_name>   <target>` — raw tool id (first letter
+        // capitalised for display) first, salient target after (a basename here), no English
+        // verb and no parenthesised footnote.
         let line = tool_call_line("file_read", &serde_json::json!({"path": "src/main.rs"}));
         let plain = console::strip_ansi_codes(&line).to_string();
         assert!(
-            plain.contains("file_read"),
-            "raw tool name shown: {plain:?}"
+            plain.contains("File_read"),
+            "tool name shown (capitalised): {plain:?}"
         );
         assert!(plain.contains("main.rs"), "salient target shown: {plain:?}");
         assert!(!plain.contains("Read "), "no English verb: {plain:?}");
@@ -5273,10 +5275,10 @@ mod tests {
 
     #[test]
     fn tool_call_line_unmapped_shows_bare_name() {
-        // An unknown tool with no salient field renders just the raw name (no crash, no JSON dump).
+        // An unknown tool with no salient field renders just the name (no crash, no JSON dump).
         let line = tool_call_line("mystery_tool", &serde_json::json!({"foo": "bar"}));
         let plain = console::strip_ansi_codes(&line).to_string();
-        assert!(plain.contains("mystery_tool"), "{plain:?}");
+        assert!(plain.contains("Mystery_tool"), "{plain:?}");
     }
 
     #[test]
