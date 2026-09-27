@@ -12,7 +12,7 @@ code, runs your shell, verifies its own work, and remembers how *you* like thing
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai-main_v2?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai-main_v2/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-00b894?style=for-the-badge)](LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-e17055?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
@@ -35,12 +35,12 @@ https://github.com/user-attachments/assets/45bbdfc8-09a3-4995-870f-eb92452743c9
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.ps1 | iex
 ```
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.sh | sh
 ```
 
 Then open a new terminal:
@@ -53,8 +53,8 @@ fauto            # land in the REPL and start typing
 That's the whole setup. No env vars, no config file to hand-edit.
 
 <sub>Prefer to do it by hand? Grab a binary from the
-[latest release](https://github.com/Huutantv/factory-ai/releases/latest) — or build it yourself with
-`cargo install --git https://github.com/Huutantv/factory-ai`. Upgrade or roll back any time with
+[latest release](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) — or build it yourself with
+`cargo install --git https://github.com/Huutantv/factory-ai-main_v2`. Upgrade or roll back any time with
 `fauto update`. The Windows `.exe` is unsigned, so SmartScreen will ask: *More info → Run anyway*.</sub>
 
 ## System Architecture

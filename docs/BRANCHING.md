@@ -7,9 +7,9 @@ branch protection and CI, not by memory — if something here is only a conventi
 
 | Remote | URL | Role |
 |---|---|---|
-| `origin` | `github.com/Huutantv/factory-ai` | **the live line.** `main`, `dev`, every PR, every release |
+| `origin` | `github.com/Huutantv/factory-ai-main_v2` | **the live line.** `main`, `dev`, every PR, every release |
 
-`Huutantv/factory-ai` is a fork of the upstream `aizen-stack/aizen`; the fork and upstream histories
+`Huutantv/factory-ai-main_v2` is a fork of the upstream `aizen-stack/aizen`; the fork and upstream histories
 diverged, so never merge one into the other. All work described below happens on this repo.
 
 ## Branches

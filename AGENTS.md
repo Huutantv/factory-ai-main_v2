@@ -8,7 +8,7 @@ It is the single source of truth for:
 - the **license: Apache-2.0** since 2026-08-03 — *not* PolyForm Noncommercial — and the **CLA**
   every contributor agrees to (`CLA.md`, enforced by `.github/workflows/cla.yml`; the DCO sign-off it
   replaced is gone),
-- the **canonical repo** (`Huutantv/factory-ai`, the only remote) and which slug belongs in
+- the **canonical repo** (`Huutantv/factory-ai-main_v2`, the only remote) and which slug belongs in
   user-facing URLs,
 - build/verify commands and the known distribution gaps.
 

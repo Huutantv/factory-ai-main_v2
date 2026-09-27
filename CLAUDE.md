@@ -48,16 +48,16 @@ commercial use is allowed.
 ## Git remote — one canonical repo
 
 ```
-origin  → https://github.com/Huutantv/factory-ai   (PRIVATE fork — full source, day-to-day work)
+origin  → https://github.com/Huutantv/factory-ai-main_v2   (PRIVATE fork — full source, day-to-day work)
 ```
 
-- **The canonical repo is `Huutantv/factory-ai`.** Write it in all user-facing URLs, install scripts,
+- **The canonical repo is `Huutantv/factory-ai-main_v2`.** Write it in all user-facing URLs, install scripts,
   and code. The upstream lineage is `aizen-stack/aizen` (and the older `dawnofcd/Aizen_agent` /
   `dawnofcd/aizen` remotes) — those are history, not this project's target.
 - The product is **F.Auto**, the CLI command is **`fauto`**. The binary/package name is `fauto`
   (see `Cargo.toml` `[[bin]]`), so **all build/test commands use `--bin fauto`** — `--bin aizen`
   does not exist and fails ("no bin target named `aizen`").
-- Release binaries are published to `Huutantv/factory-ai`. `src/features/update.rs` has
+- Release binaries are published to `Huutantv/factory-ai-main_v2`. `src/features/update.rs` has
   `DEFAULT_REPO` and `fauto update` reads releases from there — keep it aligned with `install.ps1`
   (`$Repo`) and `install.sh` (`repo=`).
 - Never push to `main` without being asked. Branch, then push with `-u`.
@@ -96,13 +96,16 @@ background process, not a foreground shell call.
 
 Real numbers, not guesses — from the GitHub API:
 
-- `Huutantv/factory-ai`: 25 stars, 4 forks, **0 watchers**, Discussions **off**.
+- `Huutantv/factory-ai-main_v2`: 1 star, 0 forks, **0 watchers**, Discussions **off**.
+- Verified via the GitHub API on 2026-09-27, right after the repo-slug migration. The old
+  `25 stars / 4 forks` figures that used to be quoted here belonged to the previous
+  `Huutantv/factory-ai` repo and were not carried over.
 - v0.5.5 downloads: Windows 3, Linux 0, macOS 0.
 - Windows `.exe` is **unsigned** → SmartScreen warns. macOS is **not notarized**.
 - Not published to winget / scoop / Homebrew / crates.io / AUR. Apache-2.0 now unblocks the OSI-only
   ones (crates.io, AUR, Homebrew).
 - The upstream landing page (`fauto-stack.vercel.app`) belonged to the project before the fork and is
-  not ours; there is no live landing page for `Huutantv/factory-ai` yet. Add one when releasing.
+  not ours; there is no live landing page for `Huutantv/factory-ai-main_v2` yet. Add one when releasing.
 
 ## Working style the maintainer expects
 

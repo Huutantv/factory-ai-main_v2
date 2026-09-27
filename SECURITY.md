@@ -9,7 +9,7 @@ security reports are taken seriously.
 
 Instead, report privately through one of:
 
-- GitHub's [private vulnerability reporting](https://github.com/Huutantv/factory-ai/security/advisories/new)
+- GitHub's [private vulnerability reporting](https://github.com/Huutantv/factory-ai-main_v2/security/advisories/new)
   (Security tab → Report a vulnerability), or
 - a direct private message to the maintainer.
 

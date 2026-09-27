@@ -11,7 +11,7 @@ shell,验证自己的工作成果,还记得*你*的偏好习惯。
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai-main_v2?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai-main_v2/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-00b894?style=for-the-badge)](LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-e17055?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
@@ -34,12 +34,12 @@ https://github.com/user-attachments/assets/45bbdfc8-09a3-4995-870f-eb92452743c9
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.ps1 | iex
 ```
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.sh | sh
 ```
 
 然后打开一个新终端:
@@ -52,8 +52,8 @@ fauto            # 直接进入 REPL,开始输入
 安装到此结束:无需环境变量,也无需手动编辑配置文件。
 
 <sub>更愿意手动安装?从
-[最新 release](https://github.com/Huutantv/factory-ai/releases/latest) 下载二进制文件——或者用
-`cargo install --git https://github.com/Huutantv/factory-ai` 自行构建。随时可以用 `fauto update`
+[最新 release](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) 下载二进制文件——或者用
+`cargo install --git https://github.com/Huutantv/factory-ai-main_v2` 自行构建。随时可以用 `fauto update`
 升级或回滚。Windows 的 `.exe` 未签名,SmartScreen 会弹出提示:*更多信息 → 仍要运行*。</sub>
 
 ## 为什么选择 F.Auto

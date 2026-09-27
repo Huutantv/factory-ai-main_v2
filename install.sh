@@ -1,7 +1,7 @@
 #!/bin/sh
 # F.Auto installer for Linux and macOS.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.sh | sh
 #
 # Downloads the latest optimized `fauto` binary from GitHub Releases into
 # ~/.fauto/bin (override with $FAUTO_INSTALL) and makes it executable.

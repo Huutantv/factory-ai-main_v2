@@ -379,7 +379,7 @@ mod tests {
             ),
             (
                 "Repo aizen_admin là monorepo chứa fauto-be và OmniRoute",
-                "Repo fauto public ở github.com/Huutantv/factory-ai",
+                "Repo fauto public ở github.com/Huutantv/factory-ai-main_v2",
             ),
         ];
         for (a, b) in pairs {

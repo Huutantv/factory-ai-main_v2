@@ -12,7 +12,7 @@ ra sao.
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/Huutantv/factory-ai-main_v2?style=for-the-badge&label=release&color=6c5ce7)](https://github.com/Huutantv/factory-ai-main_v2/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-00b894?style=for-the-badge)](LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-e17055?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
@@ -35,12 +35,12 @@ https://github.com/user-attachments/assets/45bbdfc8-09a3-4995-870f-eb92452743c9
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.ps1 | iex
 ```
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Huutantv/factory-ai-main_v2/main/install.sh | sh
 ```
 
 Sau đó mở một terminal mới:
@@ -53,8 +53,8 @@ fauto            # vào thẳng REPL và bắt đầu gõ
 Cài đặt chỉ có vậy. Không cần biến môi trường, không phải tay sửa file config.
 
 <sub>Muốn tự tay làm? Lấy binary từ
-[bản release mới nhất](https://github.com/Huutantv/factory-ai/releases/latest) — hoặc tự build bằng
-`cargo install --git https://github.com/Huutantv/factory-ai`. Nâng cấp hay rollback bất cứ lúc nào với
+[bản release mới nhất](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) — hoặc tự build bằng
+`cargo install --git https://github.com/Huutantv/factory-ai-main_v2`. Nâng cấp hay rollback bất cứ lúc nào với
 `fauto update`. File `.exe` trên Windows chưa ký số nên SmartScreen sẽ hỏi: *More info → Run anyway*
 (Xem thêm → Vẫn chạy).</sub>
 
