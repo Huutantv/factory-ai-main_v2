@@ -32,7 +32,6 @@ mod tests {
     }
 }
 
-
 pub mod cards;
 pub mod channel_markdown;
 pub mod config_ui;

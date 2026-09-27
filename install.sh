@@ -8,7 +8,7 @@
 # Pure static binary — no toolchain, no Node/Python.
 set -eu
 
-repo="Huutantv/factory-ai"
+repo="Huutantv/factory-ai-main_v2"
 os="$(uname -s)"
 arch="$(uname -m)"
 

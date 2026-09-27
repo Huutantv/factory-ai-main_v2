@@ -1256,7 +1256,10 @@ fn footer_height_agrees_with_the_painted_footer_across_the_working_edge() {
     // is exactly why the run loop clears on a CONTENT signature (working / draft-empty / images /
     // queued), not on height: a height-only trigger never fires on the edge the `que6ed` ghosts
     // were painted on.
-    assert_eq!(short, tall, "footer height is equal across the working→idle edge");
+    assert_eq!(
+        short, tall,
+        "footer height is equal across the working→idle edge"
+    );
     // The frame two checks at 120: the hint row carries no ghost and the placeholder is gone.
     assert!(
         rows.iter().all(|r| console::measure_text_width(r) <= 120),

@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Repo   = 'Huutantv/factory-ai'
+$Repo   = 'Huutantv/factory-ai-main_v2'
 $Suffix = 'windows-x86_64.exe'
 $Dir    = if ($env:FAUTO_INSTALL) { $env:FAUTO_INSTALL } else { Join-Path $env:LOCALAPPDATA 'F.Auto' }
 

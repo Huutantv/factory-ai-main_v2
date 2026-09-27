@@ -104,8 +104,8 @@ pub fn tool_kind(name: &str) -> &'static str {
     match name {
         "file_read" | "file_edit" | "file_write" | "file_glob" | "file_move" | "read_symbol"
         | "symbol_replace" | "symbol_insert" => pick("📂", "\u{f07b}"), // folder
-        "shell_run" | "process" => pick("💻", "\u{f120}"),               // terminal
-        "search_files" | "codebase_search" => pick("🔎", "\u{f002}"),   // magnifier
+        "shell_run" | "process" => pick("💻", "\u{f120}"), // terminal
+        "search_files" | "codebase_search" => pick("🔎", "\u{f002}"), // magnifier
         _ if name.starts_with("web") || name.starts_with("browser") => pick("🌐", "\u{f0ac}"),
         _ if name.starts_with("memory") || name.starts_with("recall") => pick("🧠", "\u{f1c0}"),
         _ => "⚙",
