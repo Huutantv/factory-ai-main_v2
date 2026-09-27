@@ -3,6 +3,7 @@
 //! an accent tone, so the panel reads as a rich multi-hue board.
 //! Rendered once when you open the interactive menu (bare `fauto`). [`render`] builds it as a string
 //! (so the sticky TUI can print it into its scroll region); [`print`] writes that string to stdout.
+use crate::ui::theme;
 
 use crate::core::cli_config;
 use console::{measure_text_width, style};
@@ -466,7 +467,7 @@ fn render_inner(allow_sixel: bool) -> String {
             .dim()
         ),
     );
-    boxline(&mut out, &format!("{} {key}", style("key:").dim()));
+    boxline(&mut out, &format!("{} {key}", theme::muted("key:")));
     boxblank(&mut out);
 
     boxline(
@@ -558,12 +559,12 @@ pub fn welcome() -> String {
     let _ = writeln!(
         out,
         "  {}",
-        style("One fast binary: chat · tools · automation · a memory that learns you.").dim()
+        theme::muted("One fast binary: chat · tools · automation · a memory that learns you.")
     );
     let _ = writeln!(
         out,
         "  {}",
-        style("Let's get you connected — about 30 seconds.").dim()
+        theme::muted("Let's get you connected — about 30 seconds.")
     );
     out
 }

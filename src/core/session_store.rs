@@ -892,7 +892,7 @@ pub(crate) fn autosave_last(history: &[Message], model: Option<&str>) {
                 // Name the file OUT LOUD the moment it exists: "which file is THIS conversation
                 // being written to?" must be answerable from the screen, not from source.
                 if !EXIT_FLUSHING.load(std::sync::atomic::Ordering::Relaxed) {
-                    tui::emit_line(&style(format!("· saving as “{slug}”")).dim().to_string());
+                    tui::emit_line(&theme::muted(format!("· saving as “{slug}”")).to_string());
                 }
                 slug
             }
@@ -907,9 +907,10 @@ pub(crate) fn autosave_last(history: &[Message], model: Option<&str>) {
                     && !EXIT_FLUSHING.load(std::sync::atomic::Ordering::Relaxed)
                 {
                     tui::emit_line(
-                        &style("· autosave recovered — this conversation is being saved again")
-                            .dim()
-                            .to_string(),
+                        &theme::muted(
+                            "· autosave recovered — this conversation is being saved again",
+                        )
+                        .to_string(),
                     );
                 }
             }

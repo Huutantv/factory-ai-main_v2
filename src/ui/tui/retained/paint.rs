@@ -520,7 +520,7 @@ pub(super) fn draw_footer(
     }
 
     let body_style = if layout.placeholder {
-        Style::default().fg(Color::DarkGray)
+        Style::default().fg(Color::Indexed(pal.faint))
     } else {
         Style::default().fg(Color::Indexed(pal.user))
     };
@@ -560,7 +560,7 @@ pub(super) fn draw_footer(
             spans.push(Span::raw(" ".repeat(gap)));
             spans.push(Span::styled(
                 layout.hint.to_string(),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(Color::Indexed(pal.faint)),
             ));
         }
         let mut line = Line::from(spans);

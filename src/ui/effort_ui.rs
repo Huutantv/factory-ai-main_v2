@@ -160,7 +160,7 @@ pub(crate) fn effort_slider_flow() {
     }
     match tui::effort_slider(effort_slider_start()) {
         Some(idx) => apply_effort_choice(idx),
-        None => tui::emit_line(&style("(effort unchanged)").dim().to_string()),
+        None => tui::emit_line(&theme::muted("(effort unchanged)").to_string()),
     }
 }
 

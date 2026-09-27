@@ -294,7 +294,7 @@ pub(crate) async fn run_import(path: Option<String>) -> Result<()> {
                     println!("  source: {}", p.display());
                     println!(
                         "  {}",
-                        style("open the REPL in this project and run /import to resume it").dim()
+                        theme::muted("open the REPL in this project and run /import to resume it")
                     );
                     Ok(())
                 }
@@ -306,7 +306,7 @@ pub(crate) async fn run_import(path: Option<String>) -> Result<()> {
             if pool.is_empty() {
                 println!(
                     "{}",
-                    style("no Claude Code or Codex transcripts found for this project").dim()
+                    theme::muted("no Claude Code or Codex transcripts found for this project")
                 );
                 println!(
                     "{}",
@@ -340,7 +340,7 @@ pub(crate) async fn run_import(path: Option<String>) -> Result<()> {
             }
             println!(
                 "{}",
-                style("resume one with: /import  (in the REPL)  or  fauto import <path>").dim()
+                theme::muted("resume one with: /import  (in the REPL)  or  fauto import <path>")
             );
             Ok(())
         }

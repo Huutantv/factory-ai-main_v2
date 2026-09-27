@@ -2,6 +2,7 @@
 //! first token streams). No new crate — a background thread redraws a braille frame via `console`,
 //! and `stop()` (or drop) clears the line so the streamed output starts clean. TTY-only: on a pipe
 //! / CI it's a silent no-op (never pollutes captured output).
+use crate::ui::theme;
 
 use console::{style, Term};
 use std::io::{IsTerminal, Write};
@@ -47,7 +48,7 @@ impl Spinner {
                     out,
                     "\r{} {}",
                     style(frame).color256(accent),
-                    style(&label).dim()
+                    theme::muted(&label)
                 );
                 let _ = out.flush();
                 i += 1;

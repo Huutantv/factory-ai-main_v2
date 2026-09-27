@@ -96,7 +96,7 @@ pub(crate) async fn slash_model(model_label: &mut String) -> Result<()> {
     {
         Some(i) => i,
         None => {
-            println!("{}", style("(kept current model)").dim());
+            println!("{}", theme::muted("(kept current model)"));
             return Ok(());
         }
     };

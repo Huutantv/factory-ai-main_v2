@@ -265,7 +265,7 @@ pub(crate) fn spawn_aside_worker(http: reqwest::Client) {
                 Ok(turn) => {
                     let answer = turn.content.unwrap_or_default();
                     if answer.trim().is_empty() {
-                        tui::emit_line(&style("  ⁇ (no answer)").dim().to_string());
+                        tui::emit_line(&theme::muted("  ⁇ (no answer)").to_string());
                     } else {
                         let shown = crate::ui::markdown::render_plain_blocks(answer.trim());
                         // Prefix every line dimly so the whole aside block reads as a margin note

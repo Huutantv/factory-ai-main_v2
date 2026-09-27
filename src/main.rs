@@ -533,7 +533,7 @@ async fn run_menu_sticky() -> Result<()> {
     install_exit_flush_handler(); // flush the live chat if the terminal window is closed (Windows ✕)
     {
         let (main, notes) = identity_banner();
-        tui::emit_line(&style(main).dim().to_string());
+        tui::emit_line(&theme::muted(main).to_string());
         for n in notes {
             tui::emit_line(&style(n).color256(theme::WARN).to_string());
         }
@@ -551,7 +551,7 @@ async fn run_menu_sticky() -> Result<()> {
     // it has changed. Best-effort: a registry failure never blocks the REPL.
     coop::begin(current_session_slug());
     if let Some(line) = coop::peers_banner() {
-        tui::emit_line(&style(line).dim().to_string());
+        tui::emit_line(&theme::muted(line).to_string());
     }
     if let Some(offer) = crate::core::recovery::scan_stale(&repo_scope)
         .into_iter()
@@ -571,7 +571,7 @@ async fn run_menu_sticky() -> Result<()> {
         // Suppressed when a crash-recovery offer is showing: two competing restore prompts in a
         // row is worse than one, and `/recover` (which carries an unsent draft + checkpoint id)
         // wins.
-        tui::emit_line(&style(hint).dim().to_string());
+        tui::emit_line(&theme::muted(hint).to_string());
     }
     // Background model health poller: colours the idle `● ready` chip green/yellow/red from a real
     // GET /models probe every 60s (plus once immediately). Independent of the chat HTTP client so a
@@ -695,9 +695,10 @@ async fn run_menu_sticky() -> Result<()> {
                     Ok(t) => t,
                     Err(_) => {
                         tui::emit_line(
-                            &style("Not set up yet — /config (or /model to pick a model).")
-                                .dim()
-                                .to_string(),
+                            &crate::ui::theme::muted(
+                                "Not set up yet — /config (or /model to pick a model).",
+                            )
+                            .to_string(),
                         );
                         continue;
                     }
@@ -708,8 +709,7 @@ async fn run_menu_sticky() -> Result<()> {
                 let tip = tui::next_tip();
                 if !tip.is_empty() {
                     tui::emit_line(
-                        &style(format!("  {}{}", icons::g(icons::tip()), tip))
-                            .dim()
+                        &crate::ui::theme::muted(format!("  {}{}", icons::g(icons::tip()), tip))
                             .to_string(),
                     );
                 }
@@ -940,7 +940,7 @@ async fn run_menu_sticky() -> Result<()> {
     // the coordinator window can still review and commit this session's work after it is closed.
     coop::clear();
     crate::agent::process::kill_all(); // reap any background dev servers/watchers we started
-    println!("{}", style("bye.").dim());
+    println!("{}", theme::muted("bye."));
     Ok(())
 }
 
@@ -950,11 +950,11 @@ async fn run_menu_plain() -> Result<()> {
     splash::print();
     println!(
         "{}",
-        style("Type to talk to the agent — it chats AND uses tools in one loop. /help for commands · Esc, Ctrl-C or /quit to exit.").dim()
+        theme::muted("Type to talk to the agent — it chats AND uses tools in one loop. /help for commands · Esc, Ctrl-C or /quit to exit.")
     );
     {
         let (main, notes) = identity_banner();
-        println!("{}", style(main).dim());
+        println!("{}", theme::muted(main));
         for n in notes {
             println!("{}", style(n).color256(theme::WARN));
         }
@@ -971,7 +971,7 @@ async fn run_menu_plain() -> Result<()> {
     rebuild_system(&mut history, &model_label);
     install_exit_flush_handler(); // flush the live chat if the terminal window is closed (Windows ✕)
     if let Some(hint) = resume_hint() {
-        tui::emit_line(&style(hint).dim().to_string());
+        tui::emit_line(&theme::muted(hint).to_string());
     }
 
     loop {
@@ -1053,7 +1053,9 @@ async fn run_menu_plain() -> Result<()> {
             Err(_) => {
                 println!(
                     "{}",
-                    style("Not set up yet — run /config (or /model to pick a model).").dim()
+                    crate::ui::theme::muted(
+                        "Not set up yet — run /config (or /model to pick a model)."
+                    )
                 );
                 continue;
             }
@@ -1128,7 +1130,7 @@ async fn run_menu_plain() -> Result<()> {
     // never reached the per-turn autosave.
     flush_live_session_on_exit();
     crate::agent::process::kill_all(); // reap any background dev servers/watchers we started
-    println!("{}", style("bye.").dim());
+    println!("{}", theme::muted("bye."));
     Ok(())
 }
 
@@ -1236,7 +1238,7 @@ pub(crate) fn print_status_line(history: &[Message], model: &str) {
     let ctx = format!(
         "{} {}",
         ctx_bar(pct),
-        style(format!("{pct:.0}% {tag}")).dim()
+        theme::muted(format!("{pct:.0}% {tag}"))
     );
     // Auto-compact trigger level, plus how many times this session has actually compacted so far
     // (P-ctx3, read from the queryable boundary marker). `⊟ 80%` → `⊟ 80% ×2` after two compactions.
@@ -1249,11 +1251,11 @@ pub(crate) fn print_status_line(history: &[Message], model: &str) {
             } else {
                 String::new()
             };
-            style(format!("  ·  ⊟ {t}%{count}")).dim().to_string()
+            theme::muted(format!("  ·  ⊟ {t}%{count}")).to_string()
         }
     };
     let cache = cache_hit_label()
-        .map(|s| style(format!("  ·  {s}")).dim().to_string())
+        .map(|s| theme::muted(format!("  ·  {s}")).to_string())
         .unwrap_or_default();
     let rest = style(format!(
         "{}{model}  ·  {toklabel}/{winlabel} tok  ·  {turns} turns{tg}",

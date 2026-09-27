@@ -270,7 +270,7 @@ fn agents_list(
             let mark = if is_enabled(&a.slug()) {
                 style("●").color256(theme::ACCENT).to_string()
             } else {
-                style("○").dim().to_string()
+                theme::muted("○").to_string()
             };
             let desc: String = a.description.chars().take(80).collect();
             let route = cfg.agent_route(&a.slug());
@@ -297,7 +297,7 @@ fn agents_list(
     } else {
         format!("{total} agent(s) · none pinned — `fauto agents enable <slug>` to advertise them.")
     };
-    println!("{}", style(hint).dim());
+    println!("{}", theme::muted(hint));
     Ok(())
 }
 
@@ -305,7 +305,7 @@ fn agents_where() {
     println!("Specialist agent sources (lower → higher precedence):");
     for (src, dir, n) in agents::source_counts() {
         let status = if !dir.exists() {
-            style("(absent)").dim().to_string()
+            theme::muted("(absent)").to_string()
         } else {
             format!("{n} agent(s)")
         };
@@ -505,7 +505,7 @@ async fn agents_install(
     let classified = classify_source(source)?;
     println!(
         "{}",
-        style("⚠ agent bodies are third-party system prompts — they run as sub-agents with edit/shell scope. Review before pinning.").dim()
+        theme::muted("⚠ agent bodies are third-party system prompts — they run as sub-agents with edit/shell scope. Review before pinning.")
     );
     match classified {
         InstallSource::FileUrl(url) => {
@@ -606,7 +606,7 @@ async fn install_from_git(url: &str, label: &str, yes: bool, enable_all: bool) -
         unique_n()
     ));
     let _ = std::fs::remove_dir_all(&staging);
-    println!("{}", style(format!("cloning {url} …")).dim());
+    println!("{}", theme::muted(format!("cloning {url} …")));
 
     let url_s = url.to_string();
     let staging_c = staging.clone();
@@ -652,12 +652,12 @@ fn finish_install(
     } else {
         println!(
             "{}",
-            style("none are pinned yet — `fauto agents enable <slug>` (or re-run with --enable-all) to advertise them.").dim()
+            theme::muted("none are pinned yet — `fauto agents enable <slug>` (or re-run with --enable-all) to advertise them.")
         );
     }
     println!(
         "{}",
-        style("review: `fauto agents list` · `fauto agents show <slug>`").dim()
+        theme::muted("review: `fauto agents list` · `fauto agents show <slug>`")
     );
     Ok(())
 }

@@ -85,11 +85,11 @@ pub(crate) fn run_team(cmd: TeamCmd) -> Result<()> {
         TeamCmd::Claims => {
             let claims = coop::claims();
             if claims.is_empty() {
-                println!("{}", style("no path claims recorded yet").dim());
+                println!("{}", theme::muted("no path claims recorded yet"));
                 return Ok(());
             }
             for (path, claim) in claims {
-                println!("  {path}  ← {}", style(&claim.session_id).dim());
+                println!("  {path}  ← {}", theme::muted(&claim.session_id));
             }
             for o in coop::overlaps() {
                 println!(
@@ -188,7 +188,7 @@ pub(crate) fn run_work(cmd: WorkCmd) -> Result<()> {
             if all.is_empty() {
                 println!(
                     "{}",
-                    style("no fauto worktrees — create one with `fauto work new <name>`").dim()
+                    theme::muted("no fauto worktrees — create one with `fauto work new <name>`")
                 );
                 return Ok(());
             }
@@ -204,12 +204,12 @@ pub(crate) fn run_work(cmd: WorkCmd) -> Result<()> {
                     notes.push(format!("{} live session(s)", wt.sessions));
                 }
                 let tail = if notes.is_empty() {
-                    style("clean".to_string()).dim().to_string()
+                    theme::muted("clean".to_string()).to_string()
                 } else {
                     style(notes.join(" · ")).color256(theme::WARN).to_string()
                 };
                 println!("  {:<20} {:<24} {tail}", wt.name, wt.branch);
-                println!("    {}", style(wt.path.display().to_string()).dim());
+                println!("    {}", theme::muted(wt.path.display().to_string()));
             }
             Ok(())
         }

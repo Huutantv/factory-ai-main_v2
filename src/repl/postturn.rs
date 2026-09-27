@@ -61,7 +61,7 @@ pub(crate) async fn maybe_auto_compact(
             .color256(theme::ACCENT)
             .to_string(),
         ),
-        Err(e) => tui::emit_line(&format!("{} {e}", style("auto-compact skipped:").dim())),
+        Err(e) => tui::emit_line(&format!("{} {e}", theme::muted("auto-compact skipped:"))),
     }
 }
 

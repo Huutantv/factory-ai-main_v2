@@ -18,11 +18,13 @@ use std::fmt::Display;
 /// Magenta — brand + structure (prompt arrow, tool block, headings, splash wordmark).
 pub const ACCENT: u8 = 213;
 /// Dim magenta — secondary: targets/values, quiet rules/borders.
-pub const ACCENT_DIM: u8 = 177;
+pub const ACCENT_DIM: u8 = 183;
 /// Neutral grey for secondary text.
-pub const MUTED: u8 = 245;
+pub const MUTED: u8 = 252;
 /// Very faint grey — separators, the code-block rule, timestamps.
-pub const FAINT: u8 = 240;
+pub const FAINT: u8 = 247;
+/// Foreground for text drawn on top of an accent-filled surface (selected menu row / chip).
+pub const ON_ACCENT: u8 = 231;
 
 // ── semantic (used ONLY where the colour carries meaning) ────────────────────────
 /// Success / confirmation / added.
@@ -38,8 +40,8 @@ pub const LINK: u8 = 81;
 pub const CODE_KEYWORD: u8 = 213; // magenta
 pub const CODE_STRING: u8 = 120; // green
 pub const CODE_NUMBER: u8 = 81; // cyan
-pub const CODE_COMMENT: u8 = 245; // grey
-pub const CODE_RULE: u8 = 240; // the left │ / box border
+pub const CODE_COMMENT: u8 = 250; // grey
+pub const CODE_RULE: u8 = 245; // the left │ / box border
 
 // ── role tokens ─────────────────────────────────────────────────────────────────
 /// The user's own words in the transcript.
@@ -110,6 +112,7 @@ pub fn tool<D: Display>(d: D) -> StyledObject<D> {
 pub struct ThemePalette {
     pub accent: u8,
     pub accent_dim: u8,
+    pub on_accent: u8,
     pub muted: u8,
     pub faint: u8,
     pub ok: u8,
@@ -142,6 +145,7 @@ impl Default for ThemePalette {
         Self {
             accent: ACCENT,
             accent_dim: ACCENT_DIM,
+            on_accent: ON_ACCENT,
             muted: MUTED,
             faint: FAINT,
             ok: OK,
@@ -175,6 +179,9 @@ pub fn accent_idx() -> u8 {
 }
 pub fn accent_dim_idx() -> u8 {
     current_palette().accent_dim
+}
+pub fn on_accent_idx() -> u8 {
+    current_palette().on_accent
 }
 pub fn muted_idx() -> u8 {
     current_palette().muted

@@ -120,7 +120,7 @@ pub(crate) fn print_cost(history: &[Message], model: &str) {
             }
             _ => line.push_str(&format!(
                 "  ·  {}",
-                style("set rates for a $ estimate: fauto config set --price-in <$/1M> --price-out <$/1M>").dim()
+                theme::muted("set rates for a $ estimate: fauto config set --price-in <$/1M> --price-out <$/1M>")
             )),
         }
         // Prompt-cache payoff (only when the provider reported cache reads → confirms caching works).
@@ -192,7 +192,7 @@ pub(crate) fn print_compact_summary(before: usize, after: usize, tp: &agent::com
     tui::emit_line(&format!(
         "{}  {} → {} tok{}",
         style("✳ Compacted").color256(theme::ACCENT).bold(),
-        style(format!("~{}", fmt_k(before))).dim(),
+        theme::muted(format!("~{}", fmt_k(before))),
         style(format!("~{}", fmt_k(after))).color256(theme::ACCENT),
         if saved > 0 {
             style(format!("  · freed ~{}", fmt_k(saved)))
@@ -206,21 +206,21 @@ pub(crate) fn print_compact_summary(before: usize, after: usize, tp: &agent::com
     for f in &tp.files {
         tui::emit_line(&format!(
             "{leaf} {} {}",
-            style("Referenced file").dim(),
+            theme::muted("Referenced file"),
             style(f).color256(theme::ACCENT_DIM)
         ));
     }
     if !tp.skills.is_empty() {
         tui::emit_line(&format!(
             "{leaf} {} ({})",
-            style("Skills restored").dim(),
+            theme::muted("Skills restored"),
             style(tp.skills.join(", ")).color256(theme::ACCENT_DIM),
         ));
     }
     if tp.files.is_empty() && tp.skills.is_empty() {
         tui::emit_line(&format!(
             "{leaf} {}",
-            style("no files or skills to carry forward").dim()
+            theme::muted("no files or skills to carry forward")
         ));
     }
 }
@@ -260,7 +260,7 @@ pub(crate) fn print_context(history: &[Message], model: &str) {
         let name = format!("{}{}", "  ".repeat(depth), label);
         let s = format!("{name:<26} {:>10}", format!("~{} tok", fmt_k(tok)));
         if dim {
-            style(s).dim().to_string()
+            theme::muted(s).to_string()
         } else {
             s
         }
@@ -285,7 +285,7 @@ pub(crate) fn print_context(history: &[Message], model: &str) {
         tui::emit_line(&line("assistant turns", asst_tok, 1, true));
         tui::emit_line(&line("tool results", tool_tok, 1, true));
     }
-    let bar = format!("{} {}", ctx_bar(pct), style(format!("{pct:.0}%")).dim());
+    let bar = format!("{} {}", ctx_bar(pct), theme::muted(format!("{pct:.0}%")));
     tui::emit_line(&format!(
         "{}  {} {bar}",
         style(format!("{:<26}", "total"))

@@ -16,6 +16,7 @@ use crate::features::crawl;
 use crate::llm::client;
 use crate::memory;
 use crate::ui::context_report::resolve_ctx_window;
+use crate::ui::theme;
 use crate::{arm_lsp_session, eager_enabled};
 use anyhow::{Context, Result};
 use console::style;
@@ -130,7 +131,7 @@ async fn run_plan_only_mode(
 ) -> Result<()> {
     eprintln!(
         "{}",
-        style("Planning mode: generating execution plan without running...").dim()
+        theme::muted("Planning mode: generating execution plan without running...")
     );
 
     let cwd = std::env::current_dir()
@@ -181,9 +182,9 @@ async fn run_plan_only_mode(
     let outcome = agent::run_agent_loop(chat, &cfg, &registry, &mut history).await?;
 
     // Print the plan result to stdout.
-    println!("\n{}", style("─".repeat(80)).dim());
+    println!("\n{}", theme::muted("─".repeat(80)));
     println!("{}", style("Execution Plan").bold());
-    println!("{}", style("─".repeat(80)).dim());
+    println!("{}", theme::muted("─".repeat(80)));
 
     if let Some(final_text) = &outcome.final_text {
         println!("{}\n", final_text.trim());
@@ -205,13 +206,13 @@ async fn run_plan_only_mode(
         StopReason::MaxIters => {
             eprintln!(
                 "{}",
-                style("⚠ Plan may be incomplete (step budget exhausted)").dim()
+                theme::muted("⚠ Plan may be incomplete (step budget exhausted)")
             );
         }
         other => {
             eprintln!(
                 "{}",
-                style(format!("⚠ Planning stopped: {:?}", other)).dim()
+                theme::muted(format!("⚠ Planning stopped: {:?}", other))
             );
         }
     }
@@ -244,7 +245,7 @@ pub(crate) async fn run_crawl(args: CrawlArgs) -> Result<()> {
                 println!(
                     "{}  {}",
                     f.url,
-                    style(format!("[{} d{}]", f.via.tag(), f.depth)).dim()
+                    theme::muted(format!("[{} d{}]", f.via.tag(), f.depth))
                 );
             } else {
                 println!("{}", f.url);
@@ -271,7 +272,7 @@ pub(crate) async fn run_reach(cmd: ReachCmd) -> Result<()> {
         }
         ReachCmd::Doctor { json } => {
             if !json {
-                eprintln!("{}", style("probing every backend (a few seconds)…").dim());
+                eprintln!("{}", theme::muted("probing every backend (a few seconds)…"));
             }
             let reports = crate::agent::reach::doctor().await;
             if json {
@@ -542,7 +543,7 @@ pub(crate) async fn run_agent_cmd(args: AgentArgs) -> Result<()> {
     } else {
         eprintln!(
             "{}",
-            style(format!("📎 {} image(s) attached", images.len())).dim()
+            theme::muted(format!("📎 {} image(s) attached", images.len()))
         );
         Message::user_with_images(args.task.trim(), images)
     };

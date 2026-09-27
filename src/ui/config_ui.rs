@@ -1339,7 +1339,7 @@ fn line_ok(msg: &str) {
     tui::emit_line(&format!(
         "  {} {}",
         crate::ui::theme::ok("✓"),
-        style(msg).dim()
+        theme::muted(msg)
     ));
 }
 
@@ -1419,7 +1419,7 @@ async fn prompt_validated_base_url(
             client::EndpointCheck::NotFound(detail) => {
                 line_bad(&format!("no model list at {base}/models"));
                 if !detail.is_empty() {
-                    tui::emit_line(&format!("    {}", style(&detail).dim()));
+                    tui::emit_line(&format!("    {}", theme::muted(&detail)));
                 }
                 match missing_version_suffix(&base) {
                     Some(fixed) => {
@@ -1436,7 +1436,7 @@ async fn prompt_validated_base_url(
             client::EndpointCheck::Http(code, detail) => {
                 line_bad(&format!("HTTP {code}"));
                 if !detail.is_empty() {
-                    tui::emit_line(&format!("    {}", style(&detail).dim()));
+                    tui::emit_line(&format!("    {}", theme::muted(&detail)));
                 }
                 suggestion = Some(base);
             }
@@ -1508,7 +1508,7 @@ async fn prompt_validated_api_key(
         return Ok(Some(("codex-oauth".to_string(), codex_model_infos())));
     }
     if let Some(url) = keys_url {
-        tui::emit_line(&format!("  {}", style(format!("get a key: {url}")).dim()));
+        tui::emit_line(&format!("  {}", theme::muted(format!("get a key: {url}"))));
     }
     loop {
         let prompt = match current {
@@ -1545,7 +1545,7 @@ async fn prompt_validated_api_key(
             client::EndpointCheck::Auth(detail) => {
                 line_bad("the endpoint rejected that key");
                 if !detail.is_empty() {
-                    tui::emit_line(&format!("    {}", style(&detail).dim()));
+                    tui::emit_line(&format!("    {}", theme::muted(&detail)));
                 }
             }
             // Not the key's fault — don't make them re-paste a key that may be fine.
@@ -2240,7 +2240,7 @@ async fn config_edit_subagents(cfg: &mut cli_config::CliConfig) -> Result<()> {
         match pick {
             i if i < ROLE_ROWS.len() => {
                 let (key, label, what) = ROLE_ROWS[i];
-                tui::emit_line(&format!("  {}", style(what).dim()));
+                tui::emit_line(&format!("  {}", theme::muted(what)));
                 config_edit_one_role(cfg, key, label).await?;
             }
             i if i == ROLE_ROWS.len() => {
@@ -2732,7 +2732,7 @@ async fn config_edit_model(cfg: &mut cli_config::CliConfig) -> Result<()> {
         }
         other => {
             match other {
-                Ok(_) => tui::emit_line(&style("no models returned.").dim().to_string()),
+                Ok(_) => tui::emit_line(&theme::muted("no models returned.").to_string()),
                 Err(e) => tui::note_line(&style(format!("failed: {e}")).red().to_string()),
             }
             let mut mi =
@@ -2829,7 +2829,7 @@ where
 {
     tui::emit_line(&format!(
         "  {}",
-        style(format!("get a key: {keys_url}")).dim()
+        theme::muted(format!("get a key: {keys_url}"))
     ));
     loop {
         let prompt = match current {
@@ -3015,7 +3015,9 @@ fn config_edit_memory(cfg: &mut cli_config::CliConfig) -> Result<()> {
         line_warn("this build has no semantic backend — recall is lexical only");
         tui::emit_line(&format!(
             "  {}",
-            style("(a `--features dense` build adds embedding-based recall for paraphrases)").dim()
+            theme::muted(
+                "(a `--features dense` build adds embedding-based recall for paraphrases)"
+            )
         ));
         return Ok(());
     }
@@ -3028,7 +3030,7 @@ fn config_edit_memory(cfg: &mut cli_config::CliConfig) -> Result<()> {
         line_warn("no embedding model installed — dense recall is off");
         tui::emit_line(&format!(
             "  {}",
-            style("get one with: fauto memory model-download").dim()
+            theme::muted("get one with: fauto memory model-download")
         ));
         return Ok(());
     }

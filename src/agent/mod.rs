@@ -9,6 +9,7 @@
 //!
 //! The loop is generic over the chat fn so it's driven by a scripted fake model in tests
 //! (no live calls). Production passes a closure over `client::chat_with_tools`.
+use crate::ui::theme;
 
 pub mod app_catalog;
 #[cfg(feature = "browser")]
@@ -2071,7 +2072,7 @@ where
             // Print completion summary if todos exist
             if let Some(summary) = crate::agent::todo::completion_summary() {
                 if !cfg.quiet {
-                    eprintln!("\n{}", console::style(summary).dim());
+                    eprintln!("\n{}", crate::ui::theme::muted(summary));
                 }
             }
 
@@ -3159,7 +3160,7 @@ fn gate_and_approve(
         let line = format!(
             "{} {}",
             style("⚠ network").color256(crate::ui::theme::WARN).bold(),
-            style("this command requests network access (sandbox default is deny)").dim()
+            theme::muted("this command requests network access (sandbox default is deny)")
         );
         if crate::ui::tui::active() {
             crate::ui::tui::emit_line(&line);
@@ -3196,7 +3197,7 @@ fn gate_and_approve(
                 let line = format!(
                     "{} {}",
                     style("⚠ caution").color256(crate::ui::theme::WARN).bold(),
-                    style(&reason).dim()
+                    theme::muted(&reason)
                 );
                 if crate::ui::tui::active() {
                     crate::ui::tui::emit_line(&line);
@@ -5004,7 +5005,7 @@ fn approve(tool: &str, args: &serde_json::Value, cfg: &AgentConfig) -> bool {
     print!(
         "{}  {} ",
         tool_call_line(tool, args),
-        style("— run it? [y/N]:").dim()
+        theme::muted("— run it? [y/N]:")
     );
     let _ = std::io::stdout().flush();
     let mut line = String::new();

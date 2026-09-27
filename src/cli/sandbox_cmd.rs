@@ -3,6 +3,7 @@
 //! Everything printed here is measured, not asserted: the capability matrix comes from the
 //! runtime probe, the doctor actually spawns a child for its env-scrub self-test, and `run`
 //! executes the given command through the exact same runner every model command uses.
+use crate::ui::theme;
 
 use crate::cli_args::SandboxCliCmd;
 use crate::sandbox::{self, capabilities, policy, request::SandboxRequest, runner, CommandOrigin};
@@ -306,7 +307,7 @@ fn run_probe(command: &str, network: bool) -> Result<()> {
                 Some(c) => format!("exit {c}"),
                 None => "killed".to_string(),
             };
-            println!("{} {label}", style("sandbox run:").dim());
+            println!("{} {label}", theme::muted("sandbox run:"));
             Ok(())
         }
         Err(e) => {

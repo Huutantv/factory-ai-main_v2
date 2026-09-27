@@ -172,7 +172,7 @@ fn layout_picker() {
     use dialoguer::Select;
     let names = crate::ui::layout::list_layouts();
     if names.is_empty() {
-        tui::emit_line(&style("no layouts available").dim().to_string());
+        tui::emit_line(&theme::muted("no layouts available").to_string());
         return;
     }
     let current = crate::ui::layout::current().name;
@@ -200,7 +200,7 @@ fn layout_picker() {
             if let Some(l) = crate::ui::layout::set_layout(&names[i]) {
                 println!(
                     "{}",
-                    style(format!("layout → {} — applied live", l.name)).dim()
+                    theme::muted(format!("layout → {} — applied live", l.name))
                 );
                 tui::emit_line(
                     &style(format!("layout → {} — applied live", l.name))
@@ -210,7 +210,7 @@ fn layout_picker() {
             }
         }
         _ => {
-            println!("{}", style("(kept current layout)").dim());
+            println!("{}", theme::muted("(kept current layout)"));
         }
     }
 }
@@ -278,7 +278,7 @@ async fn slash_init(arg: &str) {
                 ));
                 let summary = codebase::analysis_summary(&idx.analysis);
                 if !summary.trim().is_empty() {
-                    tui::emit_line(&style(summary).dim().to_string());
+                    tui::emit_line(&theme::muted(summary).to_string());
                 }
             }
             None => tui::emit_line(
@@ -324,9 +324,9 @@ async fn slash_init(arg: &str) {
             }
         }
         codebase::Phase::Chunking => {
-            tui::emit_line(&style("  chunking symbols…").dim().to_string())
+            tui::emit_line(&theme::muted("  chunking symbols…").to_string())
         }
-        codebase::Phase::Building => tui::emit_line(&style("  building index…").dim().to_string()),
+        codebase::Phase::Building => tui::emit_line(&theme::muted("  building index…").to_string()),
     };
 
     let cancel_for_task = cancel.clone();
@@ -379,13 +379,13 @@ async fn slash_init(arg: &str) {
                 notes.push("scan hit the file cap (coverage bounded)".to_string());
             }
             if !notes.is_empty() {
-                tui::emit_line(&style(format!("  {}", notes.join(" · "))).dim().to_string());
+                tui::emit_line(&theme::muted(format!("  {}", notes.join(" · "))).to_string());
             }
             let summary = codebase::analysis_summary(
                 &codebase::load().map(|i| i.analysis).unwrap_or_default(),
             );
             if !summary.trim().is_empty() {
-                tui::emit_line(&style(summary).dim().to_string());
+                tui::emit_line(&theme::muted(summary).to_string());
             }
         }
         Ok(Err(e)) => {
@@ -418,7 +418,7 @@ fn slash_agents(arg: &str) {
             let provider = rp.next().unwrap_or("");
             let model = rp.next();
             if name.is_empty() || provider.is_empty() {
-                tui::emit_line(&style("usage: /agents set-provider <agent> <provider> [model]   ·   clear: /agents set-provider <agent> clear").dim().to_string());
+                tui::emit_line(&theme::muted("usage: /agents set-provider <agent> <provider> [model]   ·   clear: /agents set-provider <agent> clear").to_string());
                 return;
             }
             let mut cfg = cli_config::load();
@@ -441,7 +441,7 @@ fn slash_agents(arg: &str) {
             let name = rp.next().unwrap_or("").trim();
             let model = rp.next().unwrap_or("").trim();
             if name.is_empty() {
-                tui::emit_line(&style("usage: /agents set-model <name> <model>   (omit <model> or pass `clear` to remove the pin)").dim().to_string());
+                tui::emit_line(&theme::muted("usage: /agents set-model <name> <model>   (omit <model> or pass `clear` to remove the pin)").to_string());
                 return;
             }
             let clear = model.is_empty() || model.eq_ignore_ascii_case("clear") || model == "-";
@@ -460,7 +460,7 @@ fn slash_agents(arg: &str) {
         "" | "list" => {
             let all = agents::list();
             if all.is_empty() {
-                tui::emit_line(&style("no specialist agents installed — `fauto agents install msitarzewski/agency-agents`").dim().to_string());
+                tui::emit_line(&theme::muted("no specialist agents installed — `fauto agents install msitarzewski/agency-agents`").to_string());
                 return;
             }
             let enabled = agents::enabled_set();
@@ -487,7 +487,7 @@ fn slash_agents(arg: &str) {
             tui::emit_line(out.trim_end());
         }
         other => {
-            tui::emit_line(&style(format!("unknown /agents subcommand '{other}' — try /agents or /agents set-provider <agent> <provider> [model]")).dim().to_string());
+            tui::emit_line(&theme::muted(format!("unknown /agents subcommand '{other}' — try /agents or /agents set-provider <agent> <provider> [model]")).to_string());
         }
     }
 }
@@ -671,7 +671,7 @@ async fn slash_team(arg: &str) {
                         "  {} {}  {}",
                         f.status,
                         f.path,
-                        style(format!("from checkpoint #{}", f.base)).dim()
+                        theme::muted(format!("from checkpoint #{}", f.base))
                     ));
                 }
             }
@@ -736,7 +736,7 @@ async fn slash_team(arg: &str) {
         "claims" => {
             let claims = coop::claims();
             if claims.is_empty() {
-                tui::emit_line(&style("no files are claimed yet").dim().to_string());
+                tui::emit_line(&theme::muted("no files are claimed yet").to_string());
                 return;
             }
             tui::emit_line(&format!(
@@ -991,7 +991,7 @@ fn slash_work(arg: &str) {
                     tui::emit_line(&format!(
                         "  {:<20} {}  {}",
                         w.name,
-                        style(&w.branch).dim(),
+                        theme::muted(&w.branch),
                         note
                     ));
                     tui::emit_line(
@@ -1005,7 +1005,7 @@ fn slash_work(arg: &str) {
         },
         "new" | "add" => {
             if rest.is_empty() {
-                tui::emit_line(&style("usage: /work new <name>").dim().to_string());
+                tui::emit_line(&theme::muted("usage: /work new <name>").to_string());
                 return;
             }
             match coop::work_new(rest) {
@@ -1082,7 +1082,7 @@ pub(crate) async fn handle_slash(
         return slash_custom_or_unknown(name, arg);
     };
     match builtin.id {
-        SlashId::Help => tui::emit_line(&style(slash::help_page()).dim().to_string()),
+        SlashId::Help => tui::emit_line(&theme::muted(slash::help_page()).to_string()),
         SlashId::Quit => return SlashOutcome::Quit,
         SlashId::Clear => {
             rebuild_system(history, model_label);
@@ -1090,7 +1090,7 @@ pub(crate) async fn handle_slash(
             set_session_slug(None); // the next turn names + autosaves a brand-new session file
             update_live_history(history); // drop the old chat from the exit-flush snapshot too, so an
                                           // immediate window-close after /clear doesn't re-save it
-            tui::emit_line(&style("(new conversation)").dim().to_string());
+            tui::emit_line(&theme::muted("(new conversation)").to_string());
         }
         SlashId::Where => {
             tui::emit_line(&where_report());
@@ -1099,14 +1099,14 @@ pub(crate) async fn handle_slash(
                 Some(s) => format!("session:  {}", sessions_dir().join(format!("{s}.json")).display()),
                 None => "session:  (not saved yet — named on the first autosave)".to_string(),
             };
-            tui::emit_line(&style(sess).dim().to_string());
+            tui::emit_line(&theme::muted(sess).to_string());
         }
         SlashId::Tokens => print_status_line(history, model_label),
         SlashId::Context => print_context(history, model_label),
         SlashId::Cost => print_cost(history, model_label),
         // /save + /load folded into /sessions (the current chat autosaves under its own name).
         SlashId::Save => {
-            tui::emit_line(&style("→ use /sessions — restore / save / delete are all there now").dim().to_string());
+            tui::emit_line(&theme::muted("→ use /sessions — restore / save / delete are all there now").to_string());
         }
         SlashId::Layout => {
             let sub = arg.trim();
@@ -1122,7 +1122,7 @@ pub(crate) async fn handle_slash(
                 }
                 lines.push("tip: bare /layout opens the arrow-key picker".to_string());
                 for l in lines {
-                    tui::emit_line(&style(l).dim().to_string());
+                    tui::emit_line(&theme::muted(l).to_string());
                 }
             } else if let Some(l) = crate::ui::layout::set_layout(sub) {
                 tui::emit_line(
@@ -1171,7 +1171,7 @@ pub(crate) async fn handle_slash(
                 (Some(sanitize_name(arg)), None)
             };
             match target {
-                None => tui::emit_line(&style("no saved conversation to resume yet").dim().to_string()),
+                None => tui::emit_line(&theme::muted("no saved conversation to resume yet").to_string()),
                 Some(name) => match load_session(history, &name, model_label) {
                     Ok(n) => {
                         // A restore is a thread switch — the restored thread must not inherit the
@@ -1205,12 +1205,12 @@ pub(crate) async fn handle_slash(
             let repo_scope = crate::core::recovery::current_repo_scope();
             let offers = crate::core::recovery::scan_stale(&repo_scope);
             if offers.is_empty() {
-                tui::emit_line(&style("no recoverable sessions found").dim().to_string());
+                tui::emit_line(&theme::muted("no recoverable sessions found").to_string());
             } else if arg == "discard" || arg == "drop" {
                 for offer in &offers {
                     let _ = crate::core::recovery::discard(offer);
                 }
-                tui::emit_line(&style(format!("discarded {} recovery lease(s)", offers.len())).dim().to_string());
+                tui::emit_line(&theme::muted(format!("discarded {} recovery lease(s)", offers.len())).to_string());
             } else {
                 // Restore the newest offer. Side effects are never auto-replayed — only history + draft.
                 let offer = &offers[0];
@@ -1225,7 +1225,7 @@ pub(crate) async fn handle_slash(
                         agent::replay_transcript(history);
                         if let Some(d) = draft {
                             tui::set_draft(&d);
-                            tui::emit_line(&style("restored interrupted draft into the input box (not submitted)").dim().to_string());
+                            tui::emit_line(&theme::muted("restored interrupted draft into the input box (not submitted)").to_string());
                         }
                         if offer.manifest.side_effects_possible {
                             let checkpoint = offer
@@ -1250,7 +1250,7 @@ pub(crate) async fn handle_slash(
             // Harvest what the older turns touched BEFORE they collapse — once summarized their tool
             // calls are gone, so the tree must read the history while it's still whole.
             let tp = agent::compact::context_touchpoints(history);
-            tui::emit_line(&style("compacting… (Esc to stop)").dim().to_string());
+            tui::emit_line(&theme::muted("compacting… (Esc to stop)").to_string());
             // Interruptible: the summarizer call is a network round-trip on the REPL's own thread.
             // Without this the whole app is frozen until it returns (or the 300s read timeout).
             match cancellable_slash(compact_now(history)).await {
@@ -1263,9 +1263,9 @@ pub(crate) async fn handle_slash(
         }
         SlashId::Handoff => {
             if arg.trim().is_empty() {
-                tui::emit_line(&style("usage: /handoff <new goal> — start a fresh thread carrying only what matters for it").dim().to_string());
+                tui::emit_line(&theme::muted("usage: /handoff <new goal> — start a fresh thread carrying only what matters for it").to_string());
             } else {
-                tui::emit_line(&style("handing off…").dim().to_string());
+                tui::emit_line(&theme::muted("handing off…").to_string());
                 // Same cancellable wrapper as /compact: this is a blocking model call inside the
                 // REPL loop, so without an armed token Esc can't reach it.
                 match cancellable_slash(handoff_now(history, arg.trim())).await {
@@ -1313,7 +1313,7 @@ pub(crate) async fn handle_slash(
                 crate::agent::goal::set_goal(None);
                 crate::agent::goal::arm(false);
                 crate::agent::goal::clear();
-                tui::emit_line(&style("goal mode off.").dim().to_string());
+                tui::emit_line(&theme::muted("goal mode off.").to_string());
             } else {
                 // Arm the tool gate + record the goal for every subsequent turn, and drain any stale
                 // completion claim from a previous goal so it can't leak into this one.
@@ -1343,12 +1343,12 @@ pub(crate) async fn handle_slash(
                 },
                 "off" | "disable" => {
                     LSP.disable();
-                    tui::emit_line(&style("LSP off — servers shut down, RAM reclaimed.").dim().to_string());
+                    tui::emit_line(&theme::muted("LSP off — servers shut down, RAM reclaimed.").to_string());
                 }
                 "restart" => {
                     LSP.disable();
                     match LSP.enable() {
-                        Ok(_) => tui::emit_line(&style("LSP restarted.").dim().to_string()),
+                        Ok(_) => tui::emit_line(&theme::muted("LSP restarted.").to_string()),
                         Err(e) => tui::emit_line(&format!("{} {e}", style("lsp:").red())),
                     }
                 }
@@ -1357,11 +1357,11 @@ pub(crate) async fn handle_slash(
                     match mode.as_str() {
                         "on" => {
                             LSP.set_edit_feedback(true);
-                            tui::emit_line(&style("LSP edit feedback on — new diagnostics fold into edit results.").dim().to_string());
+                            tui::emit_line(&theme::muted("LSP edit feedback on — new diagnostics fold into edit results.").to_string());
                         }
                         "off" => {
                             LSP.set_edit_feedback(false);
-                            tui::emit_line(&style("LSP edit feedback off.").dim().to_string());
+                            tui::emit_line(&theme::muted("LSP edit feedback off.").to_string());
                         }
                         _ => tui::emit_line(
                             &style(format!(
@@ -1374,7 +1374,7 @@ pub(crate) async fn handle_slash(
                     }
                 }
                 other => tui::emit_line(
-                    &style(format!("usage: /lsp [status|on|off|restart|edits on|off]  (unknown '{other}')")).dim().to_string(),
+                    &theme::muted(format!("usage: /lsp [status|on|off|restart|edits on|off]  (unknown '{other}')")).to_string(),
                 ),
             }
         }
@@ -1384,12 +1384,12 @@ pub(crate) async fn handle_slash(
             match sub.as_str() {
                 "" | "status" | "st" => tui::emit_line(&reach::render_passive()),
                 "doctor" | "dr" | "check" => {
-                    tui::emit_line(&style("probing every backend (a few seconds)…").dim().to_string());
+                    tui::emit_line(&theme::muted("probing every backend (a few seconds)…").to_string());
                     let reports = reach::doctor().await;
                     tui::emit_line(&reach::render_report(&reports));
                 }
                 other => tui::emit_line(
-                    &style(format!("usage: /reach [status|doctor]  (unknown '{other}')")).dim().to_string(),
+                    &theme::muted(format!("usage: /reach [status|doctor]  (unknown '{other}')")).to_string(),
                 ),
             }
         }
@@ -1397,7 +1397,7 @@ pub(crate) async fn handle_slash(
             // Talks to GitHub, so wrap in `cancellable_slash` for Esc; owns stdin through the
             // dialoguer picker, which is why `tui::slash_takes_stdin` suspends the frame for it.
             match cancellable_slash(features::update::run()).await {
-                None => tui::emit_line(&style("update cancelled").dim().to_string()),
+                None => tui::emit_line(&theme::muted("update cancelled").to_string()),
                 Some(Err(e)) => tui::emit_line(&format!("{} {e:#}", style("update:").red())),
                 Some(Ok(())) => {}
             }
@@ -1406,7 +1406,7 @@ pub(crate) async fn handle_slash(
             let requested = arg.split_whitespace().next().unwrap_or("status");
             let mut cfg = cli_config::load();
             if requested.is_empty() || matches!(requested, "status" | "st") {
-                tui::emit_line(&style(format!("approval: {} · ask=prompt · smart=read-only auto · yolo=pre-authorized", approval_mode())).dim().to_string());
+                tui::emit_line(&theme::muted(format!("approval: {} · ask=prompt · smart=read-only auto · yolo=pre-authorized", approval_mode())).to_string());
             } else if let Ok(mode) = requested.parse::<ApprovalMode>() {
                 cfg.set_approval_mode(mode);
                 match cli_config::save(&cfg) {
@@ -1414,7 +1414,7 @@ pub(crate) async fn handle_slash(
                     Err(e) => tui::emit_line(&format!("{} {e}", style("approval:").red())),
                 }
             } else {
-                tui::emit_line(&style("usage: /approval ask|smart|yolo").dim().to_string());
+                tui::emit_line(&theme::muted("usage: /approval ask|smart|yolo").to_string());
             }
         }
         SlashId::Sandbox => {
@@ -1576,7 +1576,7 @@ SlashId::Yolo => {
                     &style("✦ ultimate ON — max reasoning effort every turn + prefers launching workflows for fan-out-able tasks. /ultimate again to turn it off.")
                         .color256(theme::ACCENT).to_string(),
                 ),
-                Ok(_) => tui::emit_line(&style("ultimate OFF — effort back to auto-detect, no orchestration nudge.").dim().to_string()),
+                Ok(_) => tui::emit_line(&theme::muted("ultimate OFF — effort back to auto-detect, no orchestration nudge.").to_string()),
                 Err(e) => tui::emit_line(&format!("{} {e}", style("ultimate:").red())),
             }
             // Recolour the input box to match: warn-yellow framing while ultimate is ON (mirrors the
@@ -1584,7 +1584,7 @@ SlashId::Yolo => {
             // env-forced ON wins over the toggle, so read it back rather than trusting `now`.
             tui::set_ultimate(cli_config::ultimate_enabled());
             if std::env::var("AIZEN_ULTIMATE").is_ok() {
-                tui::emit_line(&style("(note: AIZEN_ULTIMATE is set in your environment — it forces ultimate ON regardless of this toggle)").dim().to_string());
+                tui::emit_line(&theme::muted("(note: AIZEN_ULTIMATE is set in your environment — it forces ultimate ON regardless of this toggle)").to_string());
             }
         }
         SlashId::Effort => {
@@ -1641,7 +1641,7 @@ SlashId::Yolo => {
                     }
                 }
                 other => tui::emit_line(
-                    &style(format!("usage: /effort [auto|off|low|medium|high|xhigh|max|none]  (unknown '{other}')")).dim().to_string(),
+                    &theme::muted(format!("usage: /effort [auto|off|low|medium|high|xhigh|max|none]  (unknown '{other}')")).to_string(),
                 ),
             }
         }
@@ -1741,20 +1741,20 @@ SlashId::Yolo => {
             #[cfg(feature = "browser")]
             {
                 if matches!(arg, "doctor" | "check" | "probe") {
-                    tui::emit_line(&style("probing browser profiles…").dim().to_string());
+                    tui::emit_line(&theme::muted("probing browser profiles…").to_string());
                     tui::emit_line(&crate::agent::browser::doctor().await);
                 } else {
                     tui::emit_line(&crate::agent::browser::status());
                 }
             }
             #[cfg(not(feature = "browser"))]
-            tui::emit_line(&style("browser tools are not included in this build (build with --features browser)").dim().to_string());
+            tui::emit_line(&theme::muted("browser tools are not included in this build (build with --features browser)").to_string());
         }
         SlashId::Tools => slash_tools(arg).await,
         SlashId::Commands => match commands::summary() {
-            Some(s) => tui::emit_line(&style(s).dim().to_string()),
+            Some(s) => tui::emit_line(&theme::muted(s).to_string()),
             None => tui::emit_line(
-                &style("No custom commands yet. Drop a markdown file in ~/.aizen/commands/ (or ./.aizen/commands/ for this project) — see /help.").dim().to_string()
+                &theme::muted("No custom commands yet. Drop a markdown file in ~/.aizen/commands/ (or ./.aizen/commands/ for this project) — see /help.").to_string()
             ),
         },
         SlashId::Telegram => {

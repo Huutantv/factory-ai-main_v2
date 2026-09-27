@@ -182,7 +182,7 @@ pub(crate) fn identity_banner() -> (String, Vec<String>) {
 pub(crate) fn run_id_migration_once() {
     if let Some(rep) = crate::memory::migrate_ids::run_once_at_startup() {
         if let Some(n) = rep.notice() {
-            eprintln!("{}", style(n).dim());
+            eprintln!("{}", theme::muted(n));
         }
         for w in rep.warnings.iter().take(3) {
             eprintln!(
@@ -196,7 +196,7 @@ pub(crate) fn run_id_migration_once() {
     // Separate pass, separate per-persona flag: a character created later still gets migrated.
     if let Some(rep) = crate::persona::migrate_stems::run_once_at_startup() {
         if let Some(n) = rep.notice() {
-            eprintln!("{}", style(n).dim());
+            eprintln!("{}", theme::muted(n));
         }
         for w in rep.warnings.iter().take(3) {
             eprintln!(
@@ -220,7 +220,7 @@ pub(crate) fn startup_update_probe() {
     }
     features::update::spawn_background_check();
     if let Some(notice) = features::update::cached_notice() {
-        tui::emit_line(&style(notice).dim().to_string());
+        tui::emit_line(&theme::muted(notice).to_string());
     }
 }
 

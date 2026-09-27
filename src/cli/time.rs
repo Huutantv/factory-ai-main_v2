@@ -23,7 +23,7 @@ pub(crate) fn run_time(cmd: TimeCmd) -> Result<()> {
                 "{} #{}  {}",
                 style("✓ checkpoint").color256(theme::ACCENT),
                 snap.id,
-                style(&snap.created).dim()
+                theme::muted(&snap.created)
             );
             Ok(())
         }
@@ -46,7 +46,7 @@ pub(crate) fn run_time(cmd: TimeCmd) -> Result<()> {
             // Say WHAT changed and that it's undoable: fauto only rewinds the working tree (files),
             // never your chat/history — and because the pre-restore state was auto-snapshotted, you
             // can always go forward again (`fauto time redo`, or restore the newest checkpoint).
-            println!("{}", style("  files only — your conversation is untouched · reversible with `fauto time redo`").dim());
+            println!("{}", theme::muted("  files only — your conversation is untouched · reversible with `fauto time redo`"));
             Ok(())
         }
         TimeCmd::Diff {
@@ -274,7 +274,7 @@ pub(crate) fn diff_lines(report: &timemachine::DiffReport, narrow_hint: &str) ->
             Some(old) => format!("{old} → {}", f.path),
             None => f.path.clone(),
         };
-        out.push(format!("  {} {path}  {}", f.status, style(churn).dim()));
+        out.push(format!("  {} {path}  {}", f.status, theme::muted(churn)));
     }
     match &report.patch {
         Some(text) => {
@@ -419,7 +419,7 @@ fn print_timeline() -> Result<()> {
         let tag_str = if tags.is_empty() {
             String::new()
         } else {
-            style(tags).dim().to_string()
+            theme::muted(tags).to_string()
         };
         tui::emit_line(&format!("{body}{tag_str}"));
     }
@@ -480,8 +480,8 @@ pub(crate) async fn timemachine_menu(
                 format!(
                     "{here}#{} {}  {label}{}",
                     s.id,
-                    style(rel_time(&s.created)).dim(),
-                    style(tags).dim(),
+                    theme::muted(rel_time(&s.created)),
+                    theme::muted(tags),
                 )
             })
             .collect();
@@ -584,7 +584,7 @@ fn files_restore(id: u32) -> Result<()> {
     );
     println!(
         "{}",
-        style("  (reversible — the pre-restore tree was auto-saved; pick it to go back)").dim()
+        theme::muted("  (reversible — the pre-restore tree was auto-saved; pick it to go back)")
     );
     Ok(())
 }

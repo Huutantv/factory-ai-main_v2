@@ -2345,7 +2345,7 @@ fn note_copied(text: &str, ok: bool) {
     } else {
         "· clipboard unavailable on this platform — nothing copied".to_string()
     };
-    note_line(&style(msg).dim().to_string());
+    note_line(&theme::muted(msg).to_string());
 }
 
 /// `12 chars` / `48 chars (3 lines)` — the size half of every copy confirmation.
@@ -2432,7 +2432,7 @@ fn note_ctrl_c_copy(text: &str, ok: bool, what: &str) {
     } else {
         format!("· clipboard unavailable on this platform · {chord} again to quit")
     };
-    note_line(&style(msg).dim().to_string());
+    note_line(&theme::muted(msg).to_string());
 }
 
 fn input_loop(

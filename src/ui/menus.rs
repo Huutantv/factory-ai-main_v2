@@ -217,7 +217,7 @@ async fn telegram_status() -> Result<()> {
 fn telegram_disable() -> Result<()> {
     let mut cfg = cli_config::load();
     if cfg.telegram.is_none() {
-        println!("{}", style("(Telegram was not configured)").dim());
+        println!("{}", theme::muted("(Telegram was not configured)"));
         return Ok(());
     }
     cfg.telegram = None;
@@ -337,7 +337,7 @@ async fn app_catalog_menu() -> Result<()> {
             let badge = if r.connected {
                 style("✓").color256(theme::ACCENT).to_string()
             } else {
-                style("○").dim().to_string()
+                theme::muted("○").to_string()
             };
             let blurb = if r.featured {
                 app_catalog::featured(&r.key).map(|f| f.blurb).unwrap_or("")
@@ -347,7 +347,7 @@ async fn app_catalog_menu() -> Result<()> {
             let action = if r.connected {
                 style("manage").color256(theme::ACCENT).to_string()
             } else {
-                style(blurb).dim().to_string()
+                theme::muted(blurb).to_string()
             };
             format!(
                 "{badge}  {} {}  —  {}",
@@ -419,7 +419,7 @@ async fn apps_manage_menu(key: &str, label: &str) -> Result<()> {
         "Test connection" => {
             println!(
                 "{}",
-                style(format!("testing '{key}' (connect + tools/list)…")).dim()
+                theme::muted(format!("testing '{key}' (connect + tools/list)…"))
             );
             match crate::agent::mcp::probe(key).await {
                 Ok(rep) => println!(
@@ -464,7 +464,7 @@ async fn apps_manage_menu(key: &str, label: &str) -> Result<()> {
                         .color256(theme::ACCENT)
                     );
                 } else {
-                    println!("{}", style(format!("'{key}' was not present.")).dim());
+                    println!("{}", theme::muted(format!("'{key}' was not present.")));
                 }
             }
             Ok(())
@@ -524,13 +524,13 @@ pub(crate) async fn apps_menu() -> Result<()> {
             let badge = if i.configured() {
                 style("✓").color256(theme::ACCENT).to_string()
             } else {
-                style("○").dim().to_string()
+                theme::muted("○").to_string()
             };
             format!(
                 "{badge}  {}{}  —  {}",
                 icons::g(i.icon()),
                 i.name(),
-                style(i.blurb()).dim()
+                theme::muted(i.blurb())
             )
         })
         .collect();
@@ -597,7 +597,7 @@ async fn webhook_app_setup(ch: notify::Channel) -> Result<()> {
             .bold()
             .color256(theme::ACCENT)
     );
-    println!("{}", style(ch.setup_hint()).dim());
+    println!("{}", theme::muted(ch.setup_hint()));
 
     let mut cfg = cli_config::load();
     let mut n = cfg.notify.clone().unwrap_or_default();
@@ -641,7 +641,7 @@ async fn webhook_app_setup(ch: notify::Channel) -> Result<()> {
     cli_config::save(&cfg)?;
     println!("{}", style("Saved.").color256(theme::ACCENT));
     if notify::is_configured(ch) {
-        println!("{}", style("Sending a test notification…").dim());
+        println!("{}", theme::muted("Sending a test notification…"));
         match notify::send_to(
             ch,
             "✅ F.Auto connected — this channel will receive agent notifications.",
@@ -662,7 +662,7 @@ async fn webhook_app_setup(ch: notify::Channel) -> Result<()> {
 async fn webhook_app_test(ch: notify::Channel) -> Result<()> {
     println!(
         "{}",
-        style(format!("Sending a test notification to {}…", ch.label())).dim()
+        theme::muted(format!("Sending a test notification to {}…", ch.label()))
     );
     match notify::send_to(ch, "🔔 F.Auto test notification.").await {
         Ok(()) => println!(
@@ -725,7 +725,7 @@ fn skill_new_interactive() -> Result<()> {
         .interact_text()?;
     println!(
         "{}",
-        style("Steps — type the procedure; end with a line containing only '.'").dim()
+        theme::muted("Steps — type the procedure; end with a line containing only '.'")
     );
     let body = read_multiline_until_dot()?;
     if body.trim().is_empty() {
@@ -767,7 +767,7 @@ fn skill_delete_interactive(skills: &[skill::Skill]) {
             } else {
                 "never loaded".into()
             };
-            format!("{}  {}", s.name, style(uses).dim())
+            format!("{}  {}", s.name, theme::muted(uses))
         })
         .collect();
     if let Ok(Some(i)) = Select::with_theme(&theme)
@@ -785,7 +785,7 @@ fn skill_delete_interactive(skills: &[skill::Skill]) {
                 ))
                 .color256(theme::ACCENT)
             ),
-            Ok(false) => println!("{}", style("(already gone)").dim()),
+            Ok(false) => println!("{}", theme::muted("(already gone)")),
             Err(e) => tui::note_line(&format!("{} {e}", style("skill:").red())),
         }
     }
@@ -829,7 +829,7 @@ pub(crate) async fn skills_menu() -> Result<()> {
                 format!(
                     "{}{pad}  {}",
                     s.name,
-                    style(format!("{uses:<5} {}{origin}", elide(&d, 64))).dim()
+                    theme::muted(format!("{uses:<5} {}{origin}", elide(&d, 64)))
                 )
             })
             .collect();
@@ -837,7 +837,7 @@ pub(crate) async fn skills_menu() -> Result<()> {
         items.push("⬇ Fetch from URL".to_string());
         items.push(format!(
             "🔎 Search agentskill.sh  {}",
-            style("(marketplace)").dim()
+            theme::muted("(marketplace)")
         ));
         if n > 0 {
             items.push("✗ Retire a skill".to_string());
@@ -846,7 +846,7 @@ pub(crate) async fn skills_menu() -> Result<()> {
         if !retired.is_empty() {
             items.push(format!(
                 "↩ Restore a retired skill  {}",
-                style(format!("({})", retired.len())).dim()
+                theme::muted(format!("({})", retired.len()))
             ));
         }
         items.push("Back".to_string());
@@ -866,7 +866,8 @@ pub(crate) async fn skills_menu() -> Result<()> {
             None => return Ok(()),
         };
         if pick < n {
-            println!("\n{}", style(skill::render_loaded(&skills[pick])).dim()); // view, then loop
+            println!("\n{}", theme::muted(skill::render_loaded(&skills[pick])));
+        // view, then loop
         } else if pick == n {
             if let Err(e) = skill_new_interactive() {
                 tui::note_line(&format!("{} {e}", style("skill:").red()));
@@ -924,12 +925,12 @@ async fn skill_search_interactive() -> Result<()> {
     if query.trim().is_empty() {
         return Ok(());
     }
-    println!("{}", style("Searching…").dim());
+    println!("{}", theme::muted("Searching…"));
     let hits = skill_registry::search(query.trim(), 20).await?;
     if hits.is_empty() {
         println!(
             "{}",
-            style(format!("no skills match '{}'", query.trim())).dim()
+            theme::muted(format!("no skills match '{}'", query.trim()))
         );
         return Ok(());
     }
@@ -939,7 +940,7 @@ async fn skill_search_interactive() -> Result<()> {
             format!(
                 "{}  {}",
                 s.id(),
-                style(s.summary_line().splitn(2, " — ").nth(1).unwrap_or("")).dim()
+                theme::muted(s.summary_line().splitn(2, " — ").nth(1).unwrap_or(""))
             )
         })
         .collect();
@@ -982,7 +983,7 @@ fn persona_new_interactive() -> Result<()> {
         .interact_text()?;
     println!(
         "{}",
-        style("Backstory / values / how it behaves — end with a line containing only '.'").dim()
+        theme::muted("Backstory / values / how it behaves — end with a line containing only '.'")
     );
     let body = read_multiline_until_dot()?;
     if body.trim().is_empty() {
@@ -1021,7 +1022,7 @@ async fn persona_paste_interactive(history: &mut Vec<Message>, model: &str) -> R
          {\"name\":\"\",\"role\":\"\",\"voice\":\"\",\"body\":\"\"}.",
     );
     let usr = Message::user(format!("Pasted character prompt:\n{pasted}"));
-    println!("{}", style("distilling into a persona card…").dim());
+    println!("{}", theme::muted("distilling into a persona card…"));
     let resp = chore_chat(&http, &base_url, &api_key, &model_id, &[sys, usr], &[])
         .await
         .context("model call failed")?;
@@ -1070,7 +1071,7 @@ async fn persona_paste_interactive(history: &mut Vec<Message>, model: &str) -> R
     );
     println!(
         "  {} {}",
-        style("role:").dim(),
+        theme::muted("role:"),
         if role.is_empty() {
             "(none)".into()
         } else {
@@ -1079,7 +1080,7 @@ async fn persona_paste_interactive(history: &mut Vec<Message>, model: &str) -> R
     );
     println!(
         "  {} {}",
-        style("voice:").dim(),
+        theme::muted("voice:"),
         if voice.is_empty() {
             "(none)".into()
         } else {
@@ -1148,7 +1149,7 @@ pub(crate) fn persona_self_view_n(slug: &str, name: &str, all: bool) {
         .filter(|m| m.kind == persona::self_mem::Kind::Insight)
         .collect();
     if !insights.is_empty() {
-        println!("\n{}", style("insights").dim());
+        println!("\n{}", theme::muted("insights"));
         let shown = if all { insights.len() } else { 10 };
         for m in insights.iter().take(shown) {
             println!(
@@ -1159,7 +1160,7 @@ pub(crate) fn persona_self_view_n(slug: &str, name: &str, all: bool) {
             );
             // The id is what `persona forget <id>` names. Without it printed here the retire path is
             // unreachable in practice — ids are body-derived slugs nobody can guess.
-            println!("      {}", style(&m.id).dim());
+            println!("      {}", theme::muted(&m.id));
         }
         if insights.len() > shown {
             println!(
@@ -1177,12 +1178,12 @@ pub(crate) fn persona_self_view_n(slug: &str, name: &str, all: bool) {
         .filter(|m| m.kind == persona::self_mem::Kind::Episode)
         .collect();
     if !episodes.is_empty() {
-        println!("\n{}", style("recent episodes").dim());
+        println!("\n{}", theme::muted("recent episodes"));
         let shown = if all { episodes.len() } else { 8 };
         for m in episodes.iter().take(shown) {
             println!(
                 "  {} [{}] {}",
-                style("·").dim(),
+                theme::muted("·"),
                 m.importance,
                 elide(m.body.trim(), 120)
             );
@@ -1190,7 +1191,7 @@ pub(crate) fn persona_self_view_n(slug: &str, name: &str, all: bool) {
         if episodes.len() > shown {
             println!(
                 "  {}",
-                style(format!("… {} more", episodes.len() - shown)).dim()
+                theme::muted(format!("… {} more", episodes.len() - shown))
             );
         }
     }
@@ -1237,7 +1238,7 @@ pub(crate) async fn personas_menu(history: &mut Vec<Message>, model: &str) -> Re
                 let badge = if on {
                     style("●").color256(theme::ACCENT).to_string()
                 } else {
-                    style("○").dim().to_string()
+                    theme::muted("○").to_string()
                 };
                 let sub = if p.role.is_empty() {
                     p.voice.clone()
@@ -1248,7 +1249,7 @@ pub(crate) async fn personas_menu(history: &mut Vec<Message>, model: &str) -> Re
                     "{badge}  {}{}  —  {}",
                     icons::g(icons::slash("persona")),
                     p.name,
-                    style(sub).dim()
+                    theme::muted(sub)
                 )
             })
             .collect();
@@ -1399,7 +1400,7 @@ pub(crate) async fn personas_menu(history: &mut Vec<Message>, model: &str) -> Re
                                 .color256(theme::ACCENT)
                             );
                         }
-                        Ok(false) => println!("{}", style("(already gone)").dim()),
+                        Ok(false) => println!("{}", theme::muted("(already gone)")),
                         Err(e) => tui::note_line(&format!("{} {e}", style("persona:").red())),
                     }
                 }
@@ -1456,7 +1457,7 @@ async fn telegram_setup() -> Result<()> {
     );
     println!(
         "{}",
-        style("Create a bot with @BotFather (/newbot), copy the token it gives you.").dim()
+        theme::muted("Create a bot with @BotFather (/newbot), copy the token it gives you.")
     );
 
     let mut cfg = cli_config::load();

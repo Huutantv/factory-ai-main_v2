@@ -10,6 +10,7 @@
 //! - Plan persistence: todos are serialized into session files and restored on `/sessions`
 //! - Plan approval gate: plan-mode waits for user approval before executing destructive tools
 //! - Completion summary: quantitative report of planned vs done at the end of runs
+use crate::ui::theme;
 
 use crate::agent::tools::Tool;
 use anyhow::Result;
@@ -253,7 +254,7 @@ pub fn render_block(items: &[Todo]) -> String {
                 format!(
                     " {} {}",
                     crate::ui::theme::ok(g),
-                    style(&t.content).dim().strikethrough()
+                    theme::muted(&t.content).strikethrough()
                 )
             }
             Status::InProgress => {

@@ -86,13 +86,13 @@ fn apps_print_list() {
         let badge = if on {
             style("✓").color256(theme::ACCENT).to_string()
         } else {
-            style("○").dim().to_string()
+            theme::muted("○").to_string()
         };
         println!(
             "  {badge}  {} {:<18} {}",
             icons::g(f.icon),
             style(f.key).color256(theme::ACCENT),
-            style(f.blurb).dim()
+            theme::muted(f.blurb)
         );
     }
     // Apps the user connected that aren't in the featured set (added via `fauto apps add <name>`).
@@ -113,7 +113,7 @@ fn apps_print_list() {
     }
     println!(
         "\n{}",
-        style("details: `fauto apps info <key>`   ·   search: `fauto apps search <keywords>`   ·   remove: `fauto apps remove <key>`").dim()
+        theme::muted("details: `fauto apps info <key>`   ·   search: `fauto apps search <keywords>`   ·   remove: `fauto apps remove <key>`")
     );
 }
 
@@ -185,7 +185,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
     labels.push("Cancel".to_string());
     println!(
         "{}",
-        style(format!("Connect {label}  —  ★ recommended · local·X = your machine · sign-in = OAuth · hosted = third party")).dim()
+        theme::muted(format!("Connect {label}  —  ★ recommended · local·X = your machine · sign-in = OAuth · hosted = third party"))
     );
     let idx = match Select::with_theme(&theme)
         .with_prompt("Pick a server (↑↓, Enter)")
@@ -195,7 +195,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
     {
         Some(i) if i < viable.len() => i,
         _ => {
-            println!("{}", style("cancelled.").dim());
+            println!("{}", theme::muted("cancelled."));
             return Ok(());
         }
     };
@@ -216,10 +216,10 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
         style(format!("→ {}", server.name)).color256(theme::ACCENT)
     );
     if !server.description.is_empty() {
-        println!("  {}", style(&server.description).dim());
+        println!("  {}", theme::muted(&server.description));
     }
     if !repo.is_empty() {
-        println!("  {}", style(&repo).dim());
+        println!("  {}", theme::muted(&repo));
     }
     if let Some(rt) = app_catalog::runtime_prereq(&server, choice) {
         let have = which_runtime(rt);
@@ -228,7 +228,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
         } else {
             format!("runs locally via {rt} — NOT found on PATH; install it to run this app")
         };
-        println!("  {}", style(note).dim());
+        println!("  {}", theme::muted(note));
     }
     // Static-token hosted remote → an explicit host-named confirm before we collect a token (it
     // leaves your machine for a third party). This is the strongest gate; refusing aborts the connect.
@@ -255,7 +255,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
         if !go {
             println!(
                 "{}",
-                style("cancelled — no third-party remote connected.").dim()
+                theme::muted("cancelled — no third-party remote connected.")
             );
             return Ok(());
         }
@@ -281,7 +281,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
             .interact()
             .unwrap_or(false);
         if !go {
-            println!("{}", style("cancelled.").dim());
+            println!("{}", theme::muted("cancelled."));
             return Ok(());
         }
     }
@@ -320,7 +320,7 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
         .interact()
         .unwrap_or(false);
     if !ok {
-        println!("{}", style("cancelled — nothing written.").dim());
+        println!("{}", theme::muted("cancelled — nothing written."));
         return Ok(());
     }
     app_catalog::write_server(&key, entry)?;
@@ -358,12 +358,12 @@ pub(crate) async fn apps_add(name: &str) -> Result<()> {
 /// show OAuth sign-in state from the token cache.
 fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
     if let Some(url) = entry.get("url").and_then(|v| v.as_str()) {
-        println!("  {} remote (streamable-http)", style("transport").dim());
-        println!("  {} {url}", style("url      ").dim());
+        println!("  {} remote (streamable-http)", theme::muted("transport"));
+        println!("  {} {url}", theme::muted("url      "));
         println!(
             "  {} {}",
-            style("host     ").dim(),
-            style(app_catalog::host_of(url)).dim()
+            theme::muted("host     "),
+            theme::muted(app_catalog::host_of(url))
         );
         if entry.get("auth").and_then(|v| v.as_str()) == Some("oauth") {
             let signed = key.map(crate::agent::mcp_oauth::has_token).unwrap_or(false);
@@ -372,7 +372,7 @@ fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
             } else {
                 "not signed in — `fauto apps login <key>`".to_string()
             };
-            println!("  {} oauth ({state})", style("auth     ").dim());
+            println!("  {} oauth ({state})", theme::muted("auth     "));
         }
     } else if let Some(cmd) = entry.get("command").and_then(|v| v.as_str()) {
         let args = entry
@@ -385,8 +385,8 @@ fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
                     .join(" ")
             })
             .unwrap_or_default();
-        println!("  {} local (stdio)", style("transport").dim());
-        println!("  {} {cmd} {args}", style("command  ").dim());
+        println!("  {} local (stdio)", theme::muted("transport"));
+        println!("  {} {cmd} {args}", theme::muted("command  "));
         if !cmd.contains(['/', '\\']) {
             let have = which_runtime(cmd);
             let note = if have {
@@ -394,7 +394,7 @@ fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
             } else {
                 format!("{cmd}: NOT on PATH — install it to run this app")
             };
-            println!("  {} {note}", style("runtime  ").dim());
+            println!("  {} {note}", theme::muted("runtime  "));
         }
     }
     for field in ["env", "headers"] {
@@ -402,7 +402,7 @@ fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
             for (k, v) in obj {
                 println!(
                     "  {} {k} = {}",
-                    style(format!("{field:<8}")).dim(),
+                    theme::muted(format!("{field:<8}")),
                     mask_secret(v.as_str().unwrap_or(""))
                 );
             }
@@ -414,9 +414,9 @@ fn print_entry_summary(entry: &serde_json::Value, key: Option<&str>) {
 /// rule). Empty → "(empty)"; set → "•••• (set)".
 fn mask_secret(v: &str) -> String {
     if v.trim().is_empty() {
-        style("(empty)").dim().to_string()
+        theme::muted("(empty)").to_string()
     } else {
-        style("•••• (set)").dim().to_string()
+        theme::muted("•••• (set)").to_string()
     }
 }
 
@@ -432,7 +432,7 @@ pub(crate) async fn apps_info(key: &str) -> Result<()> {
     print_entry_summary(&entry, Some(key));
 
     // Live probe.
-    println!("  {}", style("probing (connect + tools/list)…").dim());
+    println!("  {}", theme::muted("probing (connect + tools/list)…"));
     match crate::agent::mcp::probe(key).await {
         Ok(rep) => {
             let info = rep.server_info.get("serverInfo");
@@ -451,7 +451,7 @@ pub(crate) async fn apps_info(key: &str) -> Result<()> {
             );
             for t in &rep.tools {
                 let ro = if t.read_only {
-                    style(" [read-only]").dim().to_string()
+                    theme::muted(" [read-only]").to_string()
                 } else {
                     String::new()
                 };
@@ -459,11 +459,11 @@ pub(crate) async fn apps_info(key: &str) -> Result<()> {
                 println!(
                     "    {}{ro}  {}",
                     style(&t.name).color256(theme::ACCENT),
-                    style(d).dim()
+                    theme::muted(d)
                 );
             }
             if rep.tools.is_empty() {
-                println!("    {}", style("(this server advertised no tools)").dim());
+                println!("    {}", theme::muted("(this server advertised no tools)"));
             }
         }
         // `{e:#}` = the full anyhow chain (includes the server's stderr tail captured by the client).

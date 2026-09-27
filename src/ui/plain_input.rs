@@ -5,6 +5,7 @@
 //! nothing but raw mode and a cursor, on a terminal that may not support mouse capture at all.
 
 use crate::ui::image_input;
+use crate::ui::theme;
 use anyhow::Result;
 use console::style;
 
@@ -145,13 +146,13 @@ pub(crate) fn read_input_box(history: &[String]) -> Result<Option<(String, Vec<S
                     println!(
                         "{} {}",
                         style("❯").color256(accent).bold(),
-                        style(trimmed).dim()
+                        theme::muted(trimmed)
                     );
                 } else if !images.is_empty() {
                     println!(
                         "{} {}",
                         style("❯").color256(accent).bold(),
-                        style(format!("📎 {} image(s)", images.len())).dim()
+                        theme::muted(format!("📎 {} image(s)", images.len()))
                     );
                 }
                 std::io::stdout().flush().ok();

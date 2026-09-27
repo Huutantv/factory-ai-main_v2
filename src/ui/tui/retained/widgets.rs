@@ -55,11 +55,11 @@ pub(super) fn draw_overlay(
                 },
                 if selected {
                     Style::default()
-                        .fg(Color::Indexed(crate::ui::theme::accent_idx()))
-                        .bg(Color::Indexed(crate::ui::theme::accent_dim_idx()))
+                        .fg(Color::Indexed(crate::ui::theme::on_accent_idx()))
+                        .bg(Color::Indexed(crate::ui::theme::accent_idx()))
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::Gray)
+                    Style::default().fg(Color::Indexed(crate::ui::theme::muted_idx()))
                 },
             )
         })
@@ -72,7 +72,10 @@ pub(super) fn draw_overlay(
             overlay.hint
         )
     };
-    lines.push(Line::styled(hint, Style::default().fg(Color::DarkGray)));
+    lines.push(Line::styled(
+        hint,
+        Style::default().fg(Color::Indexed(crate::ui::theme::faint_idx())),
+    ));
     // Clamp scroll so the final page is the furthest reachable position (never scroll past the end).
     let visible = inner.height as usize;
     let max_scroll = lines.len().saturating_sub(visible);
