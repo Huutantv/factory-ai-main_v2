@@ -56,7 +56,8 @@ Cài đặt chỉ có vậy. Không cần biến môi trường, không phải t
 [bản release mới nhất](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) — hoặc tự build bằng
 `cargo install --git https://github.com/Huutantv/factory-ai-main_v2`. Nâng cấp hay rollback bất cứ lúc nào với
 `fauto update`. File `.exe` trên Windows chưa ký số nên SmartScreen sẽ hỏi: *More info → Run anyway*
-(Xem thêm → Vẫn chạy).</sub>
+(Xem thêm → Vẫn chạy). Hướng dẫn cài đặt đầy đủ (đường dẫn, cấu hình không tương tác, gỡ cài đặt):
+**[docs/huong-dan-cai-dat.md](docs/huong-dan-cai-dat.md)**.</sub>
 
 ## Vì sao chọn F.Auto
 

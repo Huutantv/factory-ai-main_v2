@@ -55,7 +55,8 @@ That's the whole setup. No env vars, no config file to hand-edit.
 <sub>Prefer to do it by hand? Grab a binary from the
 [latest release](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) — or build it yourself with
 `cargo install --git https://github.com/Huutantv/factory-ai-main_v2`. Upgrade or roll back any time with
-`fauto update`. The Windows `.exe` is unsigned, so SmartScreen will ask: *More info → Run anyway*.</sub>
+`fauto update`. The Windows `.exe` is unsigned, so SmartScreen will ask: *More info → Run anyway*.
+Full install guide (paths, non-interactive setup, uninstall): **[docs/INSTALL.md](docs/INSTALL.md)**.</sub>
 
 ## System Architecture
 
