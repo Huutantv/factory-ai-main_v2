@@ -13,8 +13,10 @@
 //! on success so an interrupted download never leaves a half file that looks complete.
 
 use crate::core::config;
+use crate::ui::rich::progress::ProgressBar;
 use anyhow::{bail, Context, Result};
 use futures_util::StreamExt;
+use std::io::{IsTerminal, Write as _};
 use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 
@@ -75,7 +77,8 @@ async fn fetch_to_file(client: &reqwest::Client, url: &str, dest: &std::path::Pa
     if !resp.status().is_success() {
         bail!("HTTP {} from {url}", resp.status().as_u16());
     }
-    if let Some(len) = resp.content_length() {
+    let total = resp.content_length();
+    if let Some(len) = total {
         if len > MAX_FILE_BYTES {
             bail!("file too large ({len} bytes > {MAX_FILE_BYTES})");
         }
@@ -87,6 +90,15 @@ async fn fetch_to_file(client: &reqwest::Client, url: &str, dest: &std::path::Pa
     let mut written: u64 = 0;
     let mut stream = resp.bytes_stream();
     let name = dest.file_name().and_then(|s| s.to_str()).unwrap_or("file");
+    // TTY-only progress: pipes keep exactly the old completion lines. The bar
+    // draws on stderr so `--json`-style stdout consumers never see it, and it
+    // redraws at most per percent step (see `redraw_due`).
+    let decorate = std::io::stdout().is_terminal();
+    let mut bar = total
+        .filter(|_| decorate)
+        .map(|t| ProgressBar::new(name, t));
+    let mut last_drawn = 0.0;
+    let mut drew = false;
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.context("reading response chunk")?;
         written += chunk.len() as u64;
@@ -97,6 +109,18 @@ async fn fetch_to_file(client: &reqwest::Client, url: &str, dest: &std::path::Pa
         file.write_all(&chunk)
             .await
             .context("writing chunk to disk")?;
+        if let Some(b) = bar.as_mut() {
+            b.inc(chunk.len() as u64);
+            if b.redraw_due(last_drawn) {
+                last_drawn = b.fraction();
+                drew = true;
+                eprint!("\r{}  ", b.render(crate::ui::tui::width(), true));
+                let _ = std::io::stderr().flush();
+            }
+        }
+    }
+    if drew {
+        eprintln!();
     }
     file.flush().await.context("flushing file")?;
     drop(file);

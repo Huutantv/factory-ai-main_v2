@@ -90,7 +90,15 @@ pub struct CrawlReport {
 
 /// Run the crawl. Best-effort: a page that fails to fetch is skipped (recon shouldn't abort on one
 /// dead link). Returns once the frontier drains or `max_pages` discovered URLs is reached.
-pub async fn crawl(client: &reqwest::Client, opts: &CrawlOptions) -> Result<CrawlReport> {
+///
+/// `on_wave`, when given, fires after every fetch wave with `(pages_fetched, urls_found)` — a
+/// display hook for the CLI progress bar. The agent tool passes `None`: progress never enters
+/// the `CrawlReport`, so the model sees byte-identical results either way.
+pub async fn crawl(
+    client: &reqwest::Client,
+    opts: &CrawlOptions,
+    mut on_wave: Option<&mut dyn FnMut(usize, usize)>,
+) -> Result<CrawlReport> {
     let mut seed_urls = Vec::new();
     for s in &opts.seeds {
         let u = Url::parse(s.trim()).with_context(|| format!("invalid seed URL '{s}'"))?;
@@ -170,6 +178,9 @@ pub async fn crawl(client: &reqwest::Client, opts: &CrawlOptions) -> Result<Craw
                     }
                 }
             }
+        }
+        if let Some(cb) = on_wave.as_mut() {
+            cb(pages_fetched, found.len());
         }
     }
 

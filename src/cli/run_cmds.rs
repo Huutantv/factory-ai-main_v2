@@ -20,6 +20,7 @@ use crate::ui::theme;
 use crate::{arm_lsp_session, eager_enabled};
 use anyhow::{Context, Result};
 use console::style;
+use std::io::IsTerminal;
 use types::Message;
 
 /// `fauto prompt-size` — byte breakdown of the per-turn fixed overhead (system prompt + tool
@@ -230,7 +231,33 @@ pub(crate) async fn run_crawl(args: CrawlArgs) -> Result<()> {
         timeout_secs: args.timeout,
     };
     let http = http_client()?;
-    let report = crawl::crawl(&http, &opts).await.context("crawl failed")?;
+    // TTY-only progress on stderr: stdout keeps the URL list (or pure JSON),
+    // pipes stay byte-identical. The report — what the model would see — is untouched.
+    let decorate = std::io::stderr().is_terminal();
+    let mut bar =
+        crate::ui::rich::progress::ProgressBar::new("crawl", (opts.max_pages.max(1)) as u64);
+    let mut last_drawn = 0.0f64;
+    let mut drew = false;
+    let mut wave_cb = |_pages: usize, found: usize| {
+        bar.set(found.min(opts.max_pages) as u64);
+        if bar.redraw_due(last_drawn) {
+            last_drawn = bar.fraction();
+            drew = true;
+            eprint!("\r{}  ", bar.render(crate::ui::tui::width(), true));
+            use std::io::Write as _;
+            let _ = std::io::stderr().flush();
+        }
+    };
+    let mut on_wave: Option<&mut dyn FnMut(usize, usize)> = None;
+    if decorate {
+        on_wave = Some(&mut wave_cb);
+    }
+    let report = crawl::crawl(&http, &opts, on_wave)
+        .await
+        .context("crawl failed")?;
+    if drew {
+        eprintln!();
+    }
 
     if args.json {
         let arr: Vec<serde_json::Value> = report

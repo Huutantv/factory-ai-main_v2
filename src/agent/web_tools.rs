@@ -258,7 +258,7 @@ impl Tool for WebCrawl {
         };
         let report = block(async {
             let c = client()?;
-            crate::features::crawl::crawl(&c, &opts).await
+            crate::features::crawl::crawl(&c, &opts, None).await
         })?;
         if report.found.is_empty() {
             return Ok(format!("(crawl of {url} found no URLs)"));

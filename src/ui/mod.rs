@@ -47,6 +47,7 @@ pub mod mermaid;
 pub mod moonscape;
 pub mod plain_input;
 pub mod provider_ui;
+pub mod rich;
 pub mod spinner;
 pub mod splash;
 pub mod theme;

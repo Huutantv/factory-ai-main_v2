@@ -6,11 +6,13 @@
 
 use crate::cli_args::AgentsCmd;
 use crate::core::cli_config;
+use crate::ui::rich::tree::TreeNode;
 use crate::ui::theme;
 use crate::{agents, ui_theme};
 use anyhow::{Context, Result};
 use console::style;
 use dialoguer::Confirm;
+use std::io::IsTerminal;
 
 /// A classified install source for `fauto agents install`.
 #[derive(Debug, PartialEq)]
@@ -264,8 +266,9 @@ fn agents_list(
     }
     let total = all.len();
     let enabled_count = all.iter().filter(|a| is_enabled(&a.slug())).count();
+    // Precompute display rows; the tree (TTY) and flat (pipe) renderers share them.
+    let mut rows: Vec<AgentListRow> = Vec::with_capacity(all.len());
     for (div, items) in &by_div {
-        println!("{}", style(format!("{div} ({})", items.len())).bold());
         for a in items {
             let mark = if is_enabled(&a.slug()) {
                 style("●").color256(theme::ACCENT).to_string()
@@ -283,13 +286,13 @@ fn agents_list(
                     )
                 })
                 .unwrap_or_default();
-            println!(
-                "  {} {}  —  {}{}",
+            rows.push(AgentListRow {
+                division: div.clone(),
                 mark,
-                a.slug(),
-                desc.replace('\n', " "),
-                route_hint
-            );
+                slug: a.slug(),
+                desc: desc.replace('\n', " "),
+                route_hint,
+            });
         }
     }
     let hint = if enabled.is_some() {
@@ -297,8 +300,58 @@ fn agents_list(
     } else {
         format!("{total} agent(s) · none pinned — `fauto agents enable <slug>` to advertise them.")
     };
-    println!("{}", theme::muted(hint));
+    // One-shot CLI surface: tree on a TTY, legacy flat rows on pipes.
+    let decorate = std::io::stdout().is_terminal();
+    print!("{}", format_agents_list(&rows, &hint, decorate));
     Ok(())
+}
+
+/// One precomputed display row for [`format_agents_list`].
+struct AgentListRow {
+    division: String,
+    mark: String,
+    slug: String,
+    desc: String,
+    route_hint: String,
+}
+
+/// Render grouped agent rows: a [`TreeNode`] per division on a TTY, the legacy
+/// flat rows on pipes. CLI-only (`agents list`); the model's `<agents>` index
+/// is built elsewhere and never sees this string.
+fn format_agents_list(rows: &[AgentListRow], footer: &str, decorate: bool) -> String {
+    let mut by_div: std::collections::BTreeMap<&str, Vec<&AgentListRow>> =
+        std::collections::BTreeMap::new();
+    for r in rows {
+        by_div.entry(r.division.as_str()).or_default().push(r);
+    }
+    let mut out = String::new();
+    for (div, items) in &by_div {
+        if decorate {
+            let mut root = TreeNode::new(&format!("{div} ({})", items.len()));
+            for a in items {
+                root = root.child(TreeNode::leaf(&format!(
+                    "{} {}  —  {}{}",
+                    a.mark, a.slug, a.desc, a.route_hint
+                )));
+            }
+            out.push_str(&root.render(true));
+        } else {
+            out.push_str(&format!("{div} ({})\n", items.len()));
+            for a in items {
+                out.push_str(&format!(
+                    "  {} {}  —  {}{}\n",
+                    a.mark, a.slug, a.desc, a.route_hint
+                ));
+            }
+        }
+    }
+    if decorate {
+        out.push_str(&theme::muted(footer).to_string());
+    } else {
+        out.push_str(footer);
+    }
+    out.push('\n');
+    out
 }
 
 fn agents_where() {
@@ -660,4 +713,40 @@ fn finish_install(
         theme::muted("review: `fauto agents list` · `fauto agents show <slug>`")
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(division: &str, mark: &str, slug: &str, desc: &str) -> AgentListRow {
+        AgentListRow {
+            division: division.to_string(),
+            mark: mark.to_string(),
+            slug: slug.to_string(),
+            desc: desc.to_string(),
+            route_hint: String::new(),
+        }
+    }
+
+    #[test]
+    fn agents_tree_groups_divisions_with_guides_on_tty_and_flat_on_pipe() {
+        let rows = vec![
+            row("eng", "*", "reviewer", "reviews code"),
+            row("eng", "o", "coder", "writes code"),
+            row("ops", "o", "oncall", "pages humans"),
+        ];
+        // TTY: one header per division, tree children with guides.
+        let tty = format_agents_list(&rows, "3 agent(s)", true);
+        assert!(tty.contains("eng (2)"), "{tty}");
+        assert!(tty.contains("ops (1)"), "{tty}");
+        assert!(tty.contains("reviewer") && tty.contains("oncall"), "{tty}");
+        // Pipe: legacy flat rows, no guides.
+        let pipe = format_agents_list(&rows, "3 agent(s)", false);
+        assert!(pipe.contains("eng (2)"), "{pipe}");
+        assert!(
+            pipe.contains("  * reviewer  —  reviews code"),
+            "legacy flat row: {pipe}"
+        );
+    }
 }
