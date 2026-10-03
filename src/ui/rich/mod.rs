@@ -26,8 +26,12 @@
 
 #![allow(dead_code)]
 
+pub mod columns;
+pub mod inspect;
 pub mod markup;
 pub mod progress;
+pub mod rule;
+pub mod status;
 pub mod syntax;
 pub mod table;
 pub mod traceback;

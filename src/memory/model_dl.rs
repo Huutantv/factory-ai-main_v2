@@ -97,6 +97,9 @@ async fn fetch_to_file(client: &reqwest::Client, url: &str, dest: &std::path::Pa
     let mut bar = total
         .filter(|_| decorate)
         .map(|t| ProgressBar::new(name, t));
+    if let Some(b) = bar.as_mut() {
+        b.start();
+    }
     let mut last_drawn = 0.0;
     let mut drew = false;
     while let Some(chunk) = stream.next().await {

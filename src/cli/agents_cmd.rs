@@ -355,7 +355,19 @@ fn format_agents_list(rows: &[AgentListRow], footer: &str, decorate: bool) -> St
 }
 
 fn agents_where() {
-    println!("Specialist agent sources (lower → higher precedence):");
+    // TTY gets a titled rule; pipes keep the legacy header line.
+    if std::io::stdout().is_terminal() {
+        println!(
+            "{}",
+            crate::ui::rich::rule::rule(
+                Some("Specialist agent sources (lower → higher precedence)"),
+                crate::ui::tui::width(),
+                true
+            )
+        );
+    } else {
+        println!("Specialist agent sources (lower → higher precedence):");
+    }
     for (src, dir, n) in agents::source_counts() {
         let status = if !dir.exists() {
             theme::muted("(absent)").to_string()

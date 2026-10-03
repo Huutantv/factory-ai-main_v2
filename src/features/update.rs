@@ -9,6 +9,7 @@ use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncWriteExt;
@@ -260,6 +261,16 @@ async fn download_to(url: &str, part: &Path, expected_size: u64) -> Result<u64> 
         .with_context(|| format!("creating {}", part.display()))?;
     let mut stream = response.bytes_stream();
     let mut total = 0u64;
+    // TTY-only ETA bar on stderr (same contract as `memory model-download`):
+    // pipes see exactly the old emit lines, scripts stay clean.
+    let decorate = IsTerminal::is_terminal(&std::io::stderr()) && expected_size > 0;
+    let mut bar = decorate.then(|| {
+        let mut b = crate::ui::rich::progress::ProgressBar::new("update", expected_size);
+        b.start();
+        b
+    });
+    let mut last_drawn = 0.0f64;
+    let mut drew = false;
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.context("reading release asset")?;
         total = total.saturating_add(chunk.len() as u64);
@@ -273,6 +284,19 @@ async fn download_to(url: &str, part: &Path, expected_size: u64) -> Result<u64> 
         tokio::io::AsyncWriteExt::write_all(&mut file, &chunk)
             .await
             .context("writing release asset")?;
+        if let Some(b) = bar.as_mut() {
+            b.inc(chunk.len() as u64);
+            if b.redraw_due(last_drawn) {
+                last_drawn = b.fraction();
+                drew = true;
+                eprint!("\r{}  ", b.render(crate::ui::tui::width(), true));
+                use std::io::Write as _;
+                let _ = std::io::stderr().flush();
+            }
+        }
+    }
+    if drew {
+        eprintln!();
     }
     file.flush().await.context("flushing release asset")?;
     drop(file);

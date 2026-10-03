@@ -1161,18 +1161,50 @@ pub fn cmd_list(scope: Option<&str>) -> Result<()> {
 /// two same-named entries apart.
 pub fn cmd_show(id_or_name: &str) -> Result<()> {
     let e = resolve_entry(id_or_name)?;
-    tui::emit_line(&format!("# {} ({})", e.name, e.mtype.as_str()));
-    tui::emit_line(&format!("id: {}", e.id));
-    if !e.description.is_empty() {
-        tui::emit_line(&e.description);
+    // TTY gets the inspect panel; pipes keep the exact legacy line sequence.
+    // Never decorate while the retained renderer owns the screen.
+    let decorate = std::io::stdout().is_terminal() && !tui::retained_running();
+    if !decorate {
+        tui::emit_line(&format!("# {} ({})", e.name, e.mtype.as_str()));
+        tui::emit_line(&format!("id: {}", e.id));
+        if !e.description.is_empty() {
+            tui::emit_line(&e.description);
+        }
+        tui::emit_line(&meta_line(&e));
+        if let Some(by) = &e.superseded_by {
+            let to = e.valid_to.as_deref().unwrap_or("?");
+            tui::emit_line(&format!("superseded: {to} → '{by}' (kept for history)"));
+        }
+        tui::emit_line(&format!("file: {}", e.path.display()));
+        tui::emit_line(&format!("\n{}", e.body));
+        return Ok(());
     }
-    tui::emit_line(&meta_line(&e));
+    use crate::ui::rich::inspect::Inspect;
+    use crate::ui::rich::rule::rule;
+    let mut fields = vec![
+        (
+            "name".to_string(),
+            format!("{} ({})", e.name, e.mtype.as_str()),
+        ),
+        ("id".to_string(), e.id.clone()),
+    ];
+    if !e.description.is_empty() {
+        fields.push(("description".to_string(), e.description.clone()));
+    }
+    fields.push(("meta".to_string(), meta_line(&e)));
     if let Some(by) = &e.superseded_by {
         let to = e.valid_to.as_deref().unwrap_or("?");
-        tui::emit_line(&format!("superseded: {to} → '{by}' (kept for history)"));
+        fields.push((
+            "superseded".to_string(),
+            format!("{to} → '{by}' (kept for history)"),
+        ));
     }
-    tui::emit_line(&format!("file: {}", e.path.display()));
-    tui::emit_line(&format!("\n{}", e.body));
+    fields.push(("file".to_string(), e.path.display().to_string()));
+    fields.push(("body".to_string(), e.body.clone()));
+    tui::emit_line(&rule(Some("fact"), tui::width(), true));
+    for line in Inspect::render("fact", &fields, tui::width(), true).lines() {
+        tui::emit_line(line);
+    }
     Ok(())
 }
 

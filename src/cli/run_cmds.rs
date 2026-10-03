@@ -378,18 +378,28 @@ pub(crate) async fn run_agent_capture(
 
 pub(crate) async fn run_models(args: ModelsArgs) -> Result<()> {
     let (base_url, api_key) = resolve_base_key(args.base_url, args.api_key)?;
+    // TTY gets multi-column flow; pipes keep one model per line.
+    let decorate = std::io::stdout().is_terminal();
+    let show_columns = |rows: &[String]| {
+        print!(
+            "{}",
+            crate::ui::rich::columns::Columns::layout(rows, crate::ui::tui::width(), 4, decorate)
+        );
+    };
     // Codex has no stable OpenAI-style /models; print the curated experimental catalog.
     if crate::llm::oauth_codex::is_codex_base_url(&base_url) {
         let current = cli_config::load().model;
         println!("ChatGPT Codex models (experimental catalog):");
+        let mut rows: Vec<String> = Vec::new();
         for (id, label) in crate::llm::codex_models::CODEX_MODELS {
             let mark = if current.as_deref() == Some(*id) {
                 " (default)"
             } else {
                 ""
             };
-            println!("{id}  · {label}  · codex{mark}");
+            rows.push(format!("{id}  · {label}  · codex{mark}"));
         }
+        show_columns(&rows);
         if !crate::llm::oauth_codex::has_token() {
             println!("(not logged in — run: fauto auth login codex)");
         }
@@ -405,6 +415,7 @@ pub(crate) async fn run_models(args: ModelsArgs) -> Result<()> {
     }
     let current = cli_config::load().model;
     let any_ctx = infos.iter().any(|m| m.context_length.is_some());
+    let mut rows: Vec<String> = Vec::with_capacity(infos.len());
     for m in &infos {
         let mark = if current.as_deref() == Some(m.id.as_str()) {
             " (default)"
@@ -421,8 +432,9 @@ pub(crate) async fn run_models(args: ModelsArgs) -> Result<()> {
             Some(n) => format!("  · ctx {n}"),
             None => String::new(),
         };
-        println!("{}{free}{ctx}{mark}", m.id);
+        rows.push(format!("{}{free}{ctx}{mark}", m.id));
     }
+    show_columns(&rows);
     if !any_ctx {
         println!(
             "\n{}",

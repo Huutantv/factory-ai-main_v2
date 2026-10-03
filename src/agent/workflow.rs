@@ -25,6 +25,7 @@ use crate::core::types::{Message, ToolDef};
 use crate::llm::client::{chat_with_tools, stream_chat_with_visual_contract};
 use anyhow::{anyhow, bail, Context, Result};
 use serde::Deserialize;
+use std::io::IsTerminal;
 use std::path::Path;
 
 /// Per-child total hard cap after the one soft extension.
@@ -95,6 +96,9 @@ pub struct TaskOutcome {
     pub status: String,
     pub summary: String,
     pub iters: usize,
+    /// Wall-clock seconds the child ran (0.0 when cancelled before start).
+    /// Display-only (status board); never enters the synthesis prompt.
+    pub elapsed_secs: f64,
 }
 
 /// Run a workflow: fan out the tasks (bounded), then synthesize. Synthesis streams to stdout.
@@ -185,10 +189,26 @@ async fn run_workflow_with_cancel(
     .await;
     drop(slots);
 
-    for r in &results {
-        eprintln!(
-            "  • {} ({}/{}) — {} [{} step(s)]",
-            r.id, r.role, r.model, r.status, r.iters
+    // Completion board (display-only T10): table on a TTY, the legacy flat
+    // rows on pipes. The synthesis prompt below reads `results` directly —
+    // the board string never reaches the model.
+    {
+        use crate::ui::rich::status::{BoardRow, TaskBoard};
+        let rows: Vec<BoardRow> = results
+            .iter()
+            .map(|r| BoardRow {
+                id: r.id.clone(),
+                role: r.role.clone(),
+                model: r.model.clone(),
+                status: r.status.clone(),
+                iters: r.iters,
+                elapsed_secs: r.elapsed_secs,
+            })
+            .collect();
+        let decorate = IsTerminal::is_terminal(&std::io::stderr());
+        eprint!(
+            "{}",
+            TaskBoard::render(&spec.name, &rows, crate::ui::tui::width(), decorate)
         );
     }
 
@@ -397,6 +417,7 @@ async fn fan_out_tracked(
                     status: "cancelled".into(),
                     summary: "cancelled by user before start".into(),
                     iters: 0,
+                    elapsed_secs: 0.0,
                 });
             }
             // Also mark any remaining tasks past this chunk.
@@ -409,24 +430,35 @@ async fn fan_out_tracked(
                     status: "cancelled".into(),
                     summary: "cancelled by user before start".into(),
                     iters: 0,
+                    elapsed_secs: 0.0,
                 });
             }
             break;
         }
         let futs = chunk.iter().map(|t| {
-            run_one_task(
-                http,
-                base_url,
-                api_key,
-                model,
-                approval_mode,
-                root,
-                date,
-                t,
-                parent,
-                cancel.clone(),
-                context_window,
-            )
+            let start = std::time::Instant::now();
+            // Clone per child: the async block below moves what it captures,
+            // and this closure runs once per chunk item.
+            let cancel = cancel.clone();
+            async move {
+                // Time the child for the status board (display-only).
+                let mut outcome = run_one_task(
+                    http,
+                    base_url,
+                    api_key,
+                    model,
+                    approval_mode,
+                    root,
+                    date,
+                    t,
+                    parent,
+                    cancel.clone(),
+                    context_window,
+                )
+                .await;
+                outcome.elapsed_secs = start.elapsed().as_secs_f64();
+                outcome
+            }
         });
         results.extend(futures_util::future::join_all(futs).await);
     }
@@ -662,6 +694,7 @@ async fn run_one_task(
             status: "cancelled".into(),
             summary: "cancelled by user before start".into(),
             iters: 0,
+            elapsed_secs: 0.0,
         };
     }
     // A resolvable `agent` slug supersedes `role` (the specialist/fusion path), mirroring the `task`
@@ -881,6 +914,7 @@ async fn run_one_task(
                         }
                     }),
                 iters: o.iters,
+                elapsed_secs: 0.0,
             }
         }
         Err(e) => {
@@ -896,6 +930,7 @@ async fn run_one_task(
                     crate::agent::task_tool::partial_report_from_messages(&msgs)
                 ),
                 iters: 0,
+                elapsed_secs: 0.0,
             }
         }
     }
@@ -1144,6 +1179,7 @@ mod tests {
                 status: "done".into(),
                 summary: "found a null deref".into(),
                 iters: 3,
+                elapsed_secs: 0.0,
             },
             TaskOutcome {
                 id: "perf".into(),
@@ -1152,6 +1188,7 @@ mod tests {
                 status: "done".into(),
                 summary: "n+1 query".into(),
                 iters: 2,
+                elapsed_secs: 0.0,
             },
         ];
         let p = build_synthesis_prompt("review", "merge", &results);
@@ -1172,6 +1209,7 @@ mod tests {
             status: "done".into(),
             summary: long,
             iters: 1,
+            elapsed_secs: 0.0,
         }];
         let p = build_synthesis_prompt("w", "merge", &results);
         assert!(p.contains("[truncated:"), "must mark truncation: {p}");
@@ -1337,6 +1375,7 @@ mod tests {
             status: "done".into(),
             summary: summary.into(),
             iters: 1,
+            elapsed_secs: 0.0,
         }
     }
 

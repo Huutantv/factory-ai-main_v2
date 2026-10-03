@@ -14,6 +14,7 @@ pub struct ProgressBar {
     pub label: String,
     pub total: u64,
     pub done: u64,
+    started: Option<std::time::Instant>,
 }
 
 impl ProgressBar {
@@ -22,7 +23,33 @@ impl ProgressBar {
             label: label.to_string(),
             total: total.max(1),
             done: 0,
+            started: None,
         }
+    }
+
+    /// Start the speed/ETA clock. Without it the bar renders without stats
+    /// (the old shape) — counters and waves that carry no byte meaning.
+    pub fn start(&mut self) {
+        self.started = Some(std::time::Instant::now());
+    }
+
+    /// Bytes (units) per second since [`start`](Self::start), or `None`.
+    pub fn speed_bps(&self) -> Option<f64> {
+        let t0 = self.started?;
+        let dt = t0.elapsed().as_secs_f64();
+        if dt <= 0.0 {
+            return None;
+        }
+        Some(self.done as f64 / dt)
+    }
+
+    /// Seconds until `total` at the current speed, or `None` when unknown.
+    pub fn eta_secs(&self) -> Option<u64> {
+        let bps = self.speed_bps()?;
+        if bps <= 0.0 || self.done >= self.total {
+            return None;
+        }
+        Some(((self.total - self.done) as f64 / bps).round() as u64)
     }
 
     pub fn set(&mut self, done: u64) {
@@ -66,13 +93,57 @@ impl ProgressBar {
         for _ in filled..bar_w {
             bar.push('░');
         }
-        format!(
+        let mut line = format!(
             "{} {} {} {}",
             theme::accent(truncate_pad(&self.label, label_w)),
             theme::ok(bar),
             theme::muted(pct),
             theme::faint(counts),
-        )
+        );
+        // Speed/ETA columns (T8) appear only once the clock runs; old tests
+        // asserting the bare shape keep passing because `start()` is opt-in.
+        if self.started.is_some() {
+            let stats = match (self.speed_bps(), self.eta_secs()) {
+                (_, _) if self.done >= self.total => {
+                    let dt = self
+                        .started
+                        .map(|t| t.elapsed().as_secs_f64())
+                        .unwrap_or(0.0);
+                    format!("done in {:.1}s", dt)
+                }
+                (Some(bps), Some(eta)) => {
+                    format!("{} · ETA {}", fmt_rate(bps), fmt_eta(eta))
+                }
+                (Some(bps), None) => fmt_rate(bps),
+                _ => "…".to_string(),
+            };
+            line.push(' ');
+            line.push_str(&theme::faint(stats).to_string());
+        }
+        line
+    }
+}
+
+/// Human rate: `512 B/s`, `1.5 KB/s`, `2.5 MB/s`.
+pub fn fmt_rate(bytes_per_sec: f64) -> String {
+    if bytes_per_sec < 1024.0 {
+        format!("{} B/s", bytes_per_sec.round() as u64)
+    } else if bytes_per_sec < 1024.0 * 1024.0 {
+        format!("{:.1} KB/s", bytes_per_sec / 1024.0)
+    } else {
+        format!("{:.1} MB/s", bytes_per_sec / (1024.0 * 1024.0))
+    }
+}
+
+/// Human ETA: `00:00`, `01:05`, `1:02:03`.
+pub fn fmt_eta(total_secs: u64) -> String {
+    let h = total_secs / 3600;
+    let m = (total_secs % 3600) / 60;
+    let s = total_secs % 60;
+    if h > 0 {
+        format!("{h}:{m:02}:{s:02}")
+    } else {
+        format!("{m:02}:{s:02}")
     }
 }
 
@@ -163,5 +234,15 @@ mod tests {
         assert!(!b.redraw_due(0.01), "same step, stay quiet");
         b.set(100);
         assert!(b.redraw_due(0.99), "completion always redraws");
+    }
+
+    #[test]
+    fn rate_and_eta_format_for_humans() {
+        assert_eq!(super::fmt_rate(512.0), "512 B/s");
+        assert_eq!(super::fmt_rate(1536.0), "1.5 KB/s");
+        assert_eq!(super::fmt_rate(2.5 * 1024.0 * 1024.0), "2.5 MB/s");
+        assert_eq!(super::fmt_eta(0), "00:00");
+        assert_eq!(super::fmt_eta(65), "01:05");
+        assert_eq!(super::fmt_eta(3723), "1:02:03");
     }
 }
