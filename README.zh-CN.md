@@ -55,6 +55,7 @@ fauto            # 直接进入 REPL,开始输入
 [最新 release](https://github.com/Huutantv/factory-ai-main_v2/releases/latest) 下载二进制文件——或者用
 `cargo install --git https://github.com/Huutantv/factory-ai-main_v2` 自行构建。随时可以用 `fauto update`
 升级或回滚。Windows 的 `.exe` 未签名,SmartScreen 会弹出提示:*更多信息 → 仍要运行*。</sub>
+完整安装指南（安装路径、非交互式配置、卸载）：**[docs/INSTALL.md](docs/INSTALL.md)**（英文）。
 
 ## 为什么选择 F.Auto
 

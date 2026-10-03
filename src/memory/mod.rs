@@ -38,6 +38,7 @@ use crate::ui::tui;
 use anyhow::{Context, Result};
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::io::IsTerminal;
 
 /// A scored search hit.
 pub struct Hit {
@@ -851,8 +852,11 @@ fn triage_tag(e: &MemoryEntry) -> &'static str {
 }
 
 /// Enumerate what is stored, WITHOUT a search query — the answer to "what do you actually know
-/// about me?". Rendered as text (shared by the CLI's `memory list` and the agent's `memory_list`
-/// tool) so the human and the model always see the same inventory, addressed by the same ids.
+/// about me?". Rendered as FLAT text: shared by pipes/CI and the agent's `memory_list` tool,
+/// so scripts and the model always see this exact inventory, addressed by the same ids.
+/// The interactive CLI (`memory list` on a TTY) instead renders [`inventory_table`] — same
+/// rows, same ids, same footer, only boxed. Never change this format without checking the
+/// model path first: `agent/builtin.rs` feeds it straight into history.
 ///
 /// `mtype` filters to one kind; `archived` lists the recoverable archive instead of the live store.
 /// Entries are grouped by type and each line leads with a (shortened, still-unique) ID, because
@@ -869,12 +873,23 @@ fn triage_tag(e: &MemoryEntry) -> &'static str {
 ///     width instead of the slug.
 ///   - **a triage column** ([`triage_tag`]) carrying the two signals that decide the question:
 ///     confirmed-in-use, and low extractor confidence.
-pub fn inventory(
+///
+/// One filtered, sorted inventory page: the rows plus the id-shortening map.
+/// Shared by the flat [`inventory`] (model + pipe) and the Rich [`inventory_table`]
+/// (TTY-only). Both read the same rows; only the rendering differs.
+struct InventoryPage {
+    listed: Vec<MemoryEntry>,
+    short: std::collections::HashMap<String, String>,
+    total: usize,
+    superseded: usize,
+}
+
+fn collect_inventory(
     sel: &ScopeSel,
     mtype: Option<MemoryType>,
     limit: usize,
     archived: bool,
-) -> Result<String> {
+) -> Result<InventoryPage> {
     let lin = path_scope::Lineage::current();
     let all = if archived {
         bloat::caps::list_archive()?
@@ -894,10 +909,6 @@ pub fn inventory(
         .filter(|e| mtype.is_none_or(|t| e.mtype == t))
         .collect();
     let total = entries.len();
-    if total == 0 {
-        let where_ = if archived { "the archive" } else { "this view" };
-        return Ok(format!("(nothing stored in {where_})"));
-    }
     // Group by type FIRST, then most-recently-touched within each group. Sorting by date alone made
     // the two types interleave, which is what produced 81 header switches for 243 rows.
     entries.sort_by(|a, b| {
@@ -914,63 +925,26 @@ pub fn inventory(
             .then_with(|| a.id.cmp(&b.id))
     });
     let shown = limit.min(total);
-    let listed: Vec<&MemoryEntry> = entries.iter().take(shown).collect();
-    let short = short_ids(&listed, &universe);
-    // Pad the id column so the descriptions line up — an unaligned left edge is most of why a long
-    // listing reads as noise. Padded BY HAND because `{:<w$}` counts bytes: the elision char is 3
-    // bytes, so format-width padding over-indents exactly the rows that were shortened.
-    //
-    // Width comes from the 90th percentile, NOT the max: ids only grow past the target when a prefix
-    // would be ambiguous, so on a real store 235 of 243 sat at 25 chars while two collision-widened
-    // ones reached 49 — and aligning to the max indented every row by the 24 columns those two
-    // needed. The few over-long rows push their own description right instead, which costs two
-    // ragged lines rather than a uniformly wasted column.
-    let mut widths: Vec<usize> = listed
-        .iter()
-        .map(|e| {
-            short
-                .get(&e.id)
-                .map_or(e.id.chars().count(), |s| s.chars().count())
-        })
-        .collect();
-    widths.sort_unstable();
-    let idw = widths
-        .get(widths.len().saturating_mul(9) / 10)
-        .copied()
-        .or_else(|| widths.last().copied())
-        .unwrap_or(0);
-    let pad = |s: &str| {
-        let n = idw.saturating_sub(s.chars().count());
-        format!("{s}{}", " ".repeat(n))
-    };
+    let listed: Vec<MemoryEntry> = entries.into_iter().take(shown).collect();
+    let refs: Vec<&MemoryEntry> = listed.iter().collect();
+    let short = short_ids(&refs, &universe);
+    Ok(InventoryPage {
+        listed,
+        short,
+        total,
+        superseded,
+    })
+}
+
+/// The triage footer shared by [`inventory`] and [`inventory_table`], so the counts a
+/// human acts on are identical on every surface.
+fn inventory_footer(
+    listed: &[MemoryEntry],
+    total: usize,
+    superseded: usize,
+    archived: bool,
+) -> String {
     let mut out = String::new();
-    let mut last_type: Option<MemoryType> = None;
-    for e in &listed {
-        if last_type != Some(e.mtype) {
-            let n = listed.iter().filter(|o| o.mtype == e.mtype).count();
-            out.push_str(&format!("\n[{}]  {n}\n", e.mtype.as_str()));
-            last_type = Some(e.mtype);
-        }
-        let desc = e.description_or_body_head();
-        let sup = match &e.superseded_by {
-            Some(by) => format!(" (superseded by {by})"),
-            None => String::new(),
-        };
-        let id = short.get(&e.id).cloned().unwrap_or_else(|| e.id.clone());
-        let tag = triage_tag(e);
-        // Category and zone go AFTER the description, not before it. Leading with them pushed the
-        // description to a different column on every row (`[c:security-rule]` is 18 chars,
-        // `[c:command]` is 11, absent is 0), which defeats the alignment the id padding just bought —
-        // and the description is the field being scanned.
-        let meta = format!("{}{}", zone_tag(e), cat_tag(e));
-        out.push_str(&format!("  {}  {:<4} {desc}{sup}{meta}\n", pad(&id), tag,));
-    }
-    if shown < total {
-        out.push_str(&format!(
-            "\n(+{} more — raise `limit` or filter by type/scope)\n",
-            total - shown
-        ));
-    }
     // The footer is where triage starts: name the counts that suggest what to prune, and the verb
     // that does it. A listing that reports only a total tells the reader nothing to act on.
     let cold = listed
@@ -1008,16 +982,175 @@ pub fn inventory(
              \n`memory where` prints the folders — for editing or clearing out many at once",
         );
     }
+    out
+}
+
+/// Flat-text inventory: grouped rows + triage footer, built for the model and
+/// pipes. Same rows, same ids, same footer as [`inventory_table`] (the TTY
+/// twin) — only the rendering differs. Never change this format without
+/// checking the model path first: the agent's `memory_list` tool feeds it
+/// straight into history.
+pub fn inventory(
+    sel: &ScopeSel,
+    mtype: Option<MemoryType>,
+    limit: usize,
+    archived: bool,
+) -> Result<String> {
+    let page = collect_inventory(sel, mtype, limit, archived)?;
+    let listed = &page.listed;
+    let short = &page.short;
+    let total = page.total;
+    let superseded = page.superseded;
+    let shown = listed.len();
+    if total == 0 {
+        let where_ = if archived { "the archive" } else { "this view" };
+        return Ok(format!("(nothing stored in {where_})"));
+    }
+    // Pad the id column so the descriptions line up — an unaligned left edge is most of why a long
+    // listing reads as noise. Padded BY HAND because `{:<w$}` counts bytes: the elision char is 3
+    // bytes, so format-width padding over-indents exactly the rows that were shortened.
+    //
+    // Width comes from the 90th percentile, NOT the max: ids only grow past the target when a prefix
+    // would be ambiguous, so on a real store 235 of 243 sat at 25 chars while two collision-widened
+    // ones reached 49 — and aligning to the max indented every row by the 24 columns those two
+    // needed. The few over-long rows push their own description right instead, which costs two
+    // ragged lines rather than a uniformly wasted column.
+    let mut widths: Vec<usize> = listed
+        .iter()
+        .map(|e| {
+            short
+                .get(&e.id)
+                .map_or(e.id.chars().count(), |s| s.chars().count())
+        })
+        .collect();
+    widths.sort_unstable();
+    let idw = widths
+        .get(widths.len().saturating_mul(9) / 10)
+        .copied()
+        .or_else(|| widths.last().copied())
+        .unwrap_or(0);
+    let pad = |s: &str| {
+        let n = idw.saturating_sub(s.chars().count());
+        format!("{s}{}", " ".repeat(n))
+    };
+    let mut out = String::new();
+    let mut last_type: Option<MemoryType> = None;
+    for e in listed {
+        if last_type != Some(e.mtype) {
+            let n = listed.iter().filter(|o| o.mtype == e.mtype).count();
+            out.push_str(&format!("\n[{}]  {n}\n", e.mtype.as_str()));
+            last_type = Some(e.mtype);
+        }
+        let desc = e.description_or_body_head();
+        let sup = match &e.superseded_by {
+            Some(by) => format!(" (superseded by {by})"),
+            None => String::new(),
+        };
+        let id = short.get(&e.id).cloned().unwrap_or_else(|| e.id.clone());
+        let tag = triage_tag(e);
+        // Category and zone go AFTER the description, not before it. Leading with them pushed the
+        // description to a different column on every row (`[c:security-rule]` is 18 chars,
+        // `[c:command]` is 11, absent is 0), which defeats the alignment the id padding just bought —
+        // and the description is the field being scanned.
+        let meta = format!("{}{}", zone_tag(e), cat_tag(e));
+        out.push_str(&format!("  {}  {:<4} {desc}{sup}{meta}\n", pad(&id), tag,));
+    }
+    if shown < total {
+        out.push_str(&format!(
+            "\n(+{} more — raise `limit` or filter by type/scope)\n",
+            total - shown
+        ));
+    }
+    out.push_str(&inventory_footer(listed, total, superseded, archived));
+    Ok(out.trim_start().to_string())
+}
+
+/// Rich-table twin of [`inventory`] for the HUMAN CLI only (`memory list` on a
+/// TTY). Same rows, same ids, same footer — only the rendering differs, so the
+/// agent's `memory_list` tool keeps reading the flat [`inventory`] text and the
+/// model never sees a format change.
+///
+/// `decorate=false` (pipes/CI) returns [`inventory`] byte-for-byte.
+pub fn inventory_table(
+    sel: &ScopeSel,
+    mtype: Option<MemoryType>,
+    limit: usize,
+    archived: bool,
+    width: usize,
+    decorate: bool,
+) -> Result<String> {
+    if !decorate {
+        return inventory(sel, mtype, limit, archived);
+    }
+    let page = collect_inventory(sel, mtype, limit, archived)?;
+    if page.total == 0 {
+        let where_ = if archived { "the archive" } else { "this view" };
+        return Ok(format!("(nothing stored in {where_})"));
+    }
+    use crate::ui::rich::table::RichTable;
+    let mut out = String::new();
+    let mut last_type: Option<MemoryType> = None;
+    let mut table = RichTable::new(&["Type", "ID", "Flag", "Description"]);
+    let flush = |out: &mut String, table: &mut RichTable, last_type: &mut Option<MemoryType>| {
+        if last_type.is_some() {
+            out.push_str(&table.render(width, true));
+            out.push('\n');
+            *table = RichTable::new(&["Type", "ID", "Flag", "Description"]);
+        }
+    };
+    for e in &page.listed {
+        if last_type != Some(e.mtype) {
+            flush(&mut out, &mut table, &mut last_type);
+            let n = page.listed.iter().filter(|o| o.mtype == e.mtype).count();
+            out.push_str(&format!("[{}]  {n}\n", e.mtype.as_str()));
+            last_type = Some(e.mtype);
+        }
+        let desc = e.description_or_body_head();
+        let sup = match &e.superseded_by {
+            Some(by) => format!(" (superseded by {by})"),
+            None => String::new(),
+        };
+        let id = page
+            .short
+            .get(&e.id)
+            .cloned()
+            .unwrap_or_else(|| e.id.clone());
+        let meta = format!("{}{}", zone_tag(e), cat_tag(e));
+        table.add_row(&[
+            e.mtype.as_str(),
+            &id,
+            triage_tag(e),
+            &format!("{desc}{sup}{meta}"),
+        ]);
+    }
+    flush(&mut out, &mut table, &mut last_type);
+    if page.listed.len() < page.total {
+        out.push_str(&format!(
+            "(+{} more — raise `limit` or filter by type/scope)\n",
+            page.total - page.listed.len()
+        ));
+    }
+    out.push_str(&inventory_footer(
+        &page.listed,
+        page.total,
+        page.superseded,
+        archived,
+    ));
     Ok(out.trim_start().to_string())
 }
 
 pub fn cmd_list(scope: Option<&str>) -> Result<()> {
     // Human listing: no cap (an explicit `memory list` should show everything it has).
-    tui::emit_line(&inventory(
+    // TTY gets the Rich table; pipes keep the flat inventory text byte-identical —
+    // and never decorate while the retained renderer owns the screen.
+    let decorate = std::io::stdout().is_terminal() && !tui::retained_running();
+    tui::emit_line(&inventory_table(
         &parse_scope_sel(scope),
         None,
         usize::MAX,
         false,
+        tui::width(),
+        decorate,
     )?);
     Ok(())
 }
@@ -1028,18 +1161,50 @@ pub fn cmd_list(scope: Option<&str>) -> Result<()> {
 /// two same-named entries apart.
 pub fn cmd_show(id_or_name: &str) -> Result<()> {
     let e = resolve_entry(id_or_name)?;
-    tui::emit_line(&format!("# {} ({})", e.name, e.mtype.as_str()));
-    tui::emit_line(&format!("id: {}", e.id));
-    if !e.description.is_empty() {
-        tui::emit_line(&e.description);
+    // TTY gets the inspect panel; pipes keep the exact legacy line sequence.
+    // Never decorate while the retained renderer owns the screen.
+    let decorate = std::io::stdout().is_terminal() && !tui::retained_running();
+    if !decorate {
+        tui::emit_line(&format!("# {} ({})", e.name, e.mtype.as_str()));
+        tui::emit_line(&format!("id: {}", e.id));
+        if !e.description.is_empty() {
+            tui::emit_line(&e.description);
+        }
+        tui::emit_line(&meta_line(&e));
+        if let Some(by) = &e.superseded_by {
+            let to = e.valid_to.as_deref().unwrap_or("?");
+            tui::emit_line(&format!("superseded: {to} → '{by}' (kept for history)"));
+        }
+        tui::emit_line(&format!("file: {}", e.path.display()));
+        tui::emit_line(&format!("\n{}", e.body));
+        return Ok(());
     }
-    tui::emit_line(&meta_line(&e));
+    use crate::ui::rich::inspect::Inspect;
+    use crate::ui::rich::rule::rule;
+    let mut fields = vec![
+        (
+            "name".to_string(),
+            format!("{} ({})", e.name, e.mtype.as_str()),
+        ),
+        ("id".to_string(), e.id.clone()),
+    ];
+    if !e.description.is_empty() {
+        fields.push(("description".to_string(), e.description.clone()));
+    }
+    fields.push(("meta".to_string(), meta_line(&e)));
     if let Some(by) = &e.superseded_by {
         let to = e.valid_to.as_deref().unwrap_or("?");
-        tui::emit_line(&format!("superseded: {to} → '{by}' (kept for history)"));
+        fields.push((
+            "superseded".to_string(),
+            format!("{to} → '{by}' (kept for history)"),
+        ));
     }
-    tui::emit_line(&format!("file: {}", e.path.display()));
-    tui::emit_line(&format!("\n{}", e.body));
+    fields.push(("file".to_string(), e.path.display().to_string()));
+    fields.push(("body".to_string(), e.body.clone()));
+    tui::emit_line(&rule(Some("fact"), tui::width(), true));
+    for line in Inspect::render("fact", &fields, tui::width(), true).lines() {
+        tui::emit_line(line);
+    }
     Ok(())
 }
 
@@ -1560,26 +1725,60 @@ pub fn cmd_neighbors(id_or_name: &str, k: usize) -> Result<()> {
         println!("({} has no co-retrieval associations yet)", seed.id);
         return Ok(());
     }
-    // Resolve neighbor ids to names/bodies for a legible listing (a dangling id is shown raw).
-    println!(
-        "neighbors of '{}' (co-recalled together, strongest first):\n",
-        seed.id
-    );
-    for (nid, w) in &neigh {
+    // One-shot CLI surface: tree on a TTY, legacy rows on pipes.
+    let decorate = std::io::stdout().is_terminal();
+    print!("{}", format_neighbors(&seed.id, &neigh, &all, decorate));
+    Ok(())
+}
+
+/// Render co-retrieval neighbors: a [`TreeNode`](crate::ui::rich::tree::TreeNode)
+/// on a TTY, the legacy flat rows on pipes. CLI-only; the graph expansion that
+/// feeds the model reads [`graph::neighbors`] directly and never sees this string.
+fn format_neighbors(
+    seed_id: &str,
+    neigh: &[(String, f64)],
+    all: &[MemoryEntry],
+    decorate: bool,
+) -> String {
+    use crate::ui::rich::tree::TreeNode;
+    if decorate {
+        let mut root = TreeNode::new(&format!(
+            "neighbors of '{seed_id}' (co-recalled together, strongest first):"
+        ));
+        for (nid, w) in neigh {
+            let label = match all.iter().find(|e| &e.id == nid) {
+                Some(e) => {
+                    let body: String = e.body.chars().take(70).collect();
+                    format!(
+                        "{w:.3}  {}{} — {}",
+                        e.id,
+                        cat_tag(e),
+                        body.replace('\n', " ")
+                    )
+                }
+                None => format!("{w:.3}  {nid} (fact no longer present)"),
+            };
+            root = root.child(TreeNode::leaf(&label));
+        }
+        return root.render(true);
+    }
+    // Legacy flat rows, byte-stable for pipes.
+    let mut out = format!("neighbors of '{seed_id}' (co-recalled together, strongest first):\n\n");
+    for (nid, w) in neigh {
         match all.iter().find(|e| &e.id == nid) {
             Some(e) => {
                 let body: String = e.body.chars().take(70).collect();
-                println!(
-                    "  {w:.3}  {}{} — {}",
+                out.push_str(&format!(
+                    "  {w:.3}  {}{} — {}\n",
                     e.id,
                     cat_tag(e),
                     body.replace('\n', " ")
-                );
+                ));
             }
-            None => println!("  {w:.3}  {nid} (fact no longer present)"),
+            None => out.push_str(&format!("  {w:.3}  {nid} (fact no longer present)\n")),
         }
     }
-    Ok(())
+    out
 }
 
 /// `memory list --superseded` — the graveyard. Retired facts are invisible to every other listing
@@ -2081,6 +2280,86 @@ mod tests {
         std::env::remove_var("AIZEN_HOME");
         let _ = std::fs::remove_dir_all(&dir);
         out
+    }
+
+    #[test]
+    fn inventory_table_renders_rich_on_tty_and_matches_inventory_on_pipe() {
+        // Display-only T1: the CLI gets a Rich table, pipes keep byte-identical text.
+        let _g = config::TEST_HOME_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let dir = std::env::temp_dir().join(format!("fauto-inv-table-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::env::set_var("AIZEN_HOME", &dir);
+        std::env::set_var("AIZEN_PROJECT_ROOT", &dir);
+
+        store::add(
+            "pnpm over npm",
+            "package manager",
+            MemoryType::User,
+            "the user prefers pnpm",
+        )
+        .unwrap();
+
+        // TTY: box table with headers + the entry id.
+        let table = inventory_table(&ScopeSel::All, None, 50, false, 100, true).unwrap();
+        assert!(table.contains("Type"), "headers: {table}");
+        assert!(table.contains("pnpm-over-npm"), "entry id: {table}");
+        assert!(table.contains('╭'), "box borders on a wide TTY: {table}");
+        // Narrow TTY: stacked fallback, no box art.
+        let narrow = inventory_table(&ScopeSel::All, None, 50, false, 30, true).unwrap();
+        assert!(narrow.contains("pnpm-over-npm"), "{narrow}");
+        assert!(!narrow.contains('╭'), "stacked, not boxed: {narrow}");
+        // Pipe: byte-identical to the model-facing inventory().
+        let plain = inventory_table(&ScopeSel::All, None, 50, false, 100, false).unwrap();
+        let legacy = inventory(&ScopeSel::All, None, 50, false).unwrap();
+        assert_eq!(plain, legacy, "pipes must not change one byte");
+
+        std::env::remove_var("AIZEN_PROJECT_ROOT");
+        std::env::remove_var("AIZEN_HOME");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn neighbors_tree_shows_weights_on_tty_and_legacy_rows_on_pipe() {
+        // Display-only T2: tree on a TTY, legacy rows on pipes.
+        let _g = config::TEST_HOME_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let dir = std::env::temp_dir().join(format!("fauto-neigh-tree-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::env::set_var("AIZEN_HOME", &dir);
+        std::env::set_var("AIZEN_PROJECT_ROOT", &dir);
+
+        store::add("alpha fact", "first", MemoryType::User, "alpha body text").unwrap();
+        store::add("beta fact", "second", MemoryType::User, "beta body text").unwrap();
+        let all = store::load_all().unwrap();
+        let seed = resolve_in(all.clone(), "alpha-fact").unwrap();
+        let beta = resolve_in(all.clone(), "beta-fact").unwrap();
+        let neigh = vec![(beta.id.clone(), 0.9), ("gone-fact".to_string(), 0.1)];
+
+        let tty = format_neighbors(&seed.id, &neigh, &all, true);
+        assert!(tty.contains(&seed.id), "{tty}");
+        assert!(tty.contains(&beta.id), "{tty}");
+        assert!(tty.contains("0.900"), "weights: {tty}");
+        assert!(
+            tty.contains("gone-fact"),
+            "dangling ids stay visible: {tty}"
+        );
+
+        let pipe = format_neighbors(&seed.id, &neigh, &all, false);
+        assert!(
+            pipe.contains(&format!("neighbors of '{}'", seed.id)),
+            "{pipe}"
+        );
+        assert!(pipe.contains("0.900"), "{pipe}");
+        assert!(pipe.contains("(fact no longer present)"), "{pipe}");
+
+        std::env::remove_var("AIZEN_PROJECT_ROOT");
+        std::env::remove_var("AIZEN_HOME");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Seed a durable, core-INELIGIBLE user fact, so it stays in the searchable tail where the

@@ -134,12 +134,10 @@ impl Tool for WebSearch {
         "web_search"
     }
     fn description(&self) -> &str {
-        "Search the web (Tavily → Jina; an API key is required — set AIZEN_TAVILY_API_KEY) and \
-         return the top results as title + URL + snippet, deduped and spread across domains. Use to FIND pages \
-         relevant to a query, then web_fetch a result URL to read it. Pass 'queries' (a list of \
-         2–3 DIFFERENT-angle phrasings) to fan out in one call — the union is merged and deduped, \
-         giving broader coverage than a single query. Optional 'site' searches one platform's own \
-         index instead: github (repositories), hackernews, stackoverflow, wikipedia. Read-only."
+        "Search the web (needs AIZEN_TAVILY_API_KEY); returns title + URL + snippet, deduped \
+         across domains. FIND pages with this, then web_fetch a URL to read it. Pass 'queries' \
+         (2–3 different-angle phrasings) to fan out in one call. Optional 'site' searches one \
+         platform's index: github, hackernews, stackoverflow, wikipedia. Read-only."
     }
     fn parameters(&self) -> Value {
         serde_json::json!({
@@ -258,7 +256,7 @@ impl Tool for WebCrawl {
         };
         let report = block(async {
             let c = client()?;
-            crate::features::crawl::crawl(&c, &opts).await
+            crate::features::crawl::crawl(&c, &opts, None).await
         })?;
         if report.found.is_empty() {
             return Ok(format!("(crawl of {url} found no URLs)"));

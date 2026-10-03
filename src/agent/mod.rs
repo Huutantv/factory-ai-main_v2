@@ -1775,10 +1775,25 @@ where
                                 verify_attempts + 1,
                                 cfg.max_verify_attempts,
                             );
+                            // Detailed human panel (display-only T4): the shaped errors, boxed
+                            // on a TTY. The model gets `failure_msg_body` below — a separate
+                            // string, so history never sees this panel's box art.
+                            let panel = verify_gate::format_gate_panel(
+                                &result,
+                                verify_attempts + 1,
+                                cfg.max_verify_attempts,
+                                std::io::IsTerminal::is_terminal(&std::io::stdout()),
+                            );
                             if crate::ui::tui::active() {
                                 crate::ui::tui::emit_line(&line);
+                                for pline in panel.lines() {
+                                    crate::ui::tui::emit_line(pline);
+                                }
                             } else {
                                 eprintln!("{line}");
+                                for pline in panel.lines() {
+                                    eprintln!("{pline}");
+                                }
                             }
                         }
                     }

@@ -176,8 +176,24 @@ impl MarkdownStream {
             return;
         }
 
-        // blockquote: > text
+        // blockquote: > text, incl. GitHub admonitions (> [!NOTE] ...)
         if let Some(rest) = ls.strip_prefix('>') {
+            let trimmed = rest.trim_start();
+            if let Some((kind, after)) = admonition_kind(trimmed) {
+                let styled = match kind {
+                    "NOTE" => theme::link(kind).bold().to_string(),
+                    "TIP" => theme::ok(kind).bold().to_string(),
+                    "IMPORTANT" => theme::accent(kind).bold().to_string(),
+                    "WARNING" => theme::warn(kind).bold().to_string(),
+                    _ => theme::err(kind).bold().to_string(), // CAUTION
+                };
+                let first = format!("{}{} {} ", gutter(), theme::faint("▏"), styled);
+                let cont = self.cont_prefix(measure_text_width(&first));
+                // The marker line carries the kind + any same-line body; following
+                // `>` lines keep flowing through the plain quote path below.
+                self.emit_block(out, &first, &cont, after, &|row| inline(row));
+                return;
+            }
             let first = format!("{}{} ", gutter(), theme::faint("▏"));
             let cont = self.cont_prefix(measure_text_width(&first));
             self.emit_block(out, &first, &cont, rest.trim_start(), &|row| {
@@ -186,11 +202,16 @@ impl MarkdownStream {
             return;
         }
 
-        // bullet: - / * / + then space
+        // bullet: - / * / + then space, incl. task lists (- [ ] / - [x])
         if let Some(rest) = bullet_rest(ls) {
-            let first = format!("{}  {} ", gutter(), theme::accent("•"));
+            let (glyph, text) = match task_checkbox(rest) {
+                Some((true, text)) => (theme::ok("☑").to_string(), text),
+                Some((false, text)) => (theme::muted("☐").to_string(), text),
+                None => (theme::accent("•").to_string(), rest),
+            };
+            let first = format!("{}  {glyph} ", gutter());
             let cont = self.cont_prefix(measure_text_width(&first));
-            self.emit_block(out, &first, &cont, rest, &|row| inline(row));
+            self.emit_block(out, &first, &cont, text, &|row| inline(row));
             return;
         }
 
@@ -837,6 +858,36 @@ fn number_rest(ls: &str) -> Option<(String, &str)> {
     }
 }
 
+/// Task-list checkbox after a bullet marker: `- [ ] todo`, `- [x] done`.
+/// Returns (checked, remaining text). A bare `[x]` with no trailing space is
+/// prose, not a checkbox — leave it literal.
+fn task_checkbox(rest: &str) -> Option<(bool, &str)> {
+    if let Some(text) = rest.strip_prefix("[ ] ") {
+        Some((false, text))
+    } else if let Some(text) = rest
+        .strip_prefix("[x] ")
+        .or_else(|| rest.strip_prefix("[X] "))
+    {
+        Some((true, text))
+    } else {
+        None
+    }
+}
+
+/// GitHub admonition marker at the start of a `>` line: `> [!NOTE] body`.
+/// Returns (KIND, same-line body, possibly empty). Unknown `[!...]` tags fall
+/// through to the plain quote path.
+fn admonition_kind(trimmed: &str) -> Option<(&'static str, &str)> {
+    for kind in ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"] {
+        let marker = format!("[!{kind}]");
+        if let Some(after) = trimmed.strip_prefix(marker.as_str()) {
+            // `> [!NOTE]` alone (empty body) still labels the callout.
+            return Some((kind, after.strip_prefix(' ').unwrap_or(after)));
+        }
+    }
+    None
+}
+
 // ── inline rendering (bold / italic / code / links) ───────────────────────────────
 fn find_char(chars: &[char], from: usize, target: char) -> Option<usize> {
     (from..chars.len()).find(|&i| chars[i] == target)
@@ -1142,6 +1193,25 @@ mod tests {
             "bullets: {out:?}"
         );
         assert!(out.contains("1. first"), "numbered: {out:?}");
+    }
+
+    #[test]
+    fn task_list_renders_checkboxes() {
+        let out = strip_ansi_codes(&render_all("- [ ] todo\n- [x] done\n")).to_string();
+        assert!(out.contains("☐ todo"), "open box: {out:?}");
+        assert!(out.contains("☑ done"), "checked box: {out:?}");
+        assert!(
+            !out.contains("[ ]") && !out.contains("[x]"),
+            "markers consumed: {out:?}"
+        );
+    }
+
+    #[test]
+    fn admonition_renders_labeled_callout() {
+        let out = strip_ansi_codes(&render_all("> [!NOTE] heads up\n> detail line\n")).to_string();
+        assert!(out.contains("NOTE") && out.contains("heads up"), "{out:?}");
+        assert!(out.contains("detail line"), "{out:?}");
+        assert!(!out.contains("[!NOTE]"), "marker consumed: {out:?}");
     }
 
     #[test]

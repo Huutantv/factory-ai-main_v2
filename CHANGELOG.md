@@ -7,6 +7,24 @@ development log lives in that monorepo's history.
 
 ## [Unreleased]
 
+## [1.7.8]
+
+### Added
+- **Rich-style terminal rendering (`src/ui/rich/`, display-only).** Tables, trees,
+  multi progress bars with speed/ETA, console markup + emoji, syntax highlight,
+  error panels, ls-like columns, object inspect, rule/align/pad primitives,
+  task-list checkboxes, GitHub admonitions, and a workflow status board — wired
+  into `memory list/show/neighbors`, `agents list`, `models`, `crawl`,
+  `model-download`, `fauto update`, and the verify-gate failure panel. Pipes/CI
+  keep byte-identical plain text; model history untouched.
+
+### Changed
+- **Tool-schema diet: −2,316 B/turn (~579 tokens).** Trimmed the longest
+  `description` strings (`task`, `workflow`, `process`, `todo_write`,
+  `search_files`, memory tools, `persona_create`, `checkpoint`); tightened the
+  schema budget tests (core 31k→26k, top 45k→31k). Param names, enums, and the
+  system prompt are unchanged (prefix-cache invariant intact).
+
 ## [0.6.6] — 2026-08-21
 
 ### Added

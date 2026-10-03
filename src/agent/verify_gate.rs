@@ -390,15 +390,60 @@ pub fn format_gate_failure(r: &VerifyGateResult) -> String {
         r.duration_ms,
         shape_failure_output(&r.output)
     );
-    if let Some(hint) = crate::features::timemachine::recovery_hint() {
+    if let Some(advice) = recovery_advice() {
         msg.push_str("\n\n");
-        msg.push_str(&hint);
-        msg.push_str(
-            " Prefer a surgical fix when the error is local; rewind when the approach itself is wrong \
-             (wrong design, cascading breakage). After a rewind, re-read files — disk contents changed.",
-        );
+        msg.push_str(&advice);
     }
     msg
+}
+
+/// The rewind-vs-fix guidance shared by the model-facing [`format_gate_failure`]
+/// and the human-facing [`format_gate_panel`], so both surfaces advise the same next step.
+fn recovery_advice() -> Option<String> {
+    crate::features::timemachine::recovery_hint().map(|hint| {
+        format!(
+            "{hint} Prefer a surgical fix when the error is local; rewind when the approach itself is wrong \
+             (wrong design, cascading breakage). After a rewind, re-read files — disk contents changed."
+        )
+    })
+}
+
+/// Detailed HUMAN panel for a failed gate (display-only T4): box + shaped errors +
+/// the same recovery advice the model gets. The model text ([`format_gate_failure`])
+/// is built separately and never passes through here, so history is untouched.
+///
+/// `decorate=false` (pipes/CI) renders plain lines — still detailed, per the approved
+/// plan ("always show detail"), just without box art.
+pub fn format_gate_panel(
+    result: &VerifyGateResult,
+    attempt: usize,
+    max_attempts: usize,
+    decorate: bool,
+) -> String {
+    use crate::ui::rich::traceback::render_error_chain;
+    if !result.stable {
+        return render_error_chain(
+            &format!("{} DISCARDED", result.command),
+            &[format!(
+                "the source workspace changed while it ran: {}",
+                result.output
+            )],
+            None,
+            None,
+            decorate,
+        );
+    }
+    let headline = format!(
+        "{} FAILED (attempt {attempt}/{max_attempts}, {} ms)",
+        result.command, result.duration_ms
+    );
+    let causes: Vec<String> = shape_failure_output(&result.output)
+        .lines()
+        .take(14)
+        .map(str::to_string)
+        .collect();
+    let hint = recovery_advice();
+    render_error_chain(&headline, &causes, None, hint.as_deref(), decorate)
 }
 
 /// Max distinct error blocks/rows surfaced to the model (the rest are counted, not quoted).
@@ -934,5 +979,25 @@ src/lib.ts(3,1): error TS2304: Cannot find name 'foo'.
         assert!(msg.contains("cargo check"));
         assert!(msg.contains("E0308"));
         assert!(msg.contains("Fix these errors"));
+    }
+
+    #[test]
+    fn gate_panel_shows_box_and_errors_on_tty_and_plain_on_pipe() {
+        // Display-only T4: the human gets a detailed panel; the model text is untouched.
+        let r = VerifyGateResult {
+            passed: false,
+            command: "cargo check".into(),
+            output: "error[E0308]: mismatched types\n --> src/main.rs:10:5".into(),
+            duration_ms: 1234,
+            stable: true,
+        };
+        let tty = format_gate_panel(&r, 1, 3, true);
+        assert!(tty.contains("cargo check"), "{tty}");
+        assert!(tty.contains("E0308"), "{tty}");
+        assert!(tty.contains("attempt 1/3"), "{tty}");
+        let pipe = format_gate_panel(&r, 1, 3, false);
+        assert!(pipe.contains("cargo check"), "{pipe}");
+        assert!(pipe.contains("E0308"), "{pipe}");
+        assert!(pipe.contains("attempt 1/3"), "{pipe}");
     }
 }

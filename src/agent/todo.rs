@@ -339,13 +339,13 @@ fn todos_schema() -> serde_json::Value {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 100,
-                            "description": "0–100 honest confidence at assign and at done (optional; omit on trivial tasks)"
+                            "description": "0–100 confidence, optional"
                         },
                         "hill_climbable": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 100,
-                            "description": "0–100 how quantifiable/iterable this goal is (optional; below ~90 may trigger a reframe nudge)"
+                            "description": "0–100 goal quantifiability, optional"
                         }
                     },
                     "required": ["content", "status"]

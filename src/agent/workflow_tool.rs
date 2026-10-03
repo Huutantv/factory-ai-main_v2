@@ -181,27 +181,24 @@ impl Tool for WorkflowTool {
         "workflow"
     }
     fn description(&self) -> &str {
-        "Run several sub-agents CONCURRENTLY (deterministic fan-out). Request as many tasks as the \
-         work needs — the harness limits how many run AT ONCE based on the machine. mode=fanout: \
-         independent tasks in parallel + one synthesized answer — for multi-angle \
-         investigation/review (at most ONE coder task; writes stay singular). mode=verify: \
-         adversarially re-check findings — each finding gets a read-only refuter, verdicts return \
-         per finding. For a single sub-task use `task` instead."
+        "Run several sub-agents CONCURRENTLY. mode=fanout: independent tasks in parallel + one \
+         synthesized answer (at most ONE coder task). mode=verify: adversarially re-check \
+         findings, verdicts return per finding. For a single sub-task use `task` instead."
     }
     fn parameters(&self) -> Value {
         serde_json::json!({
             "type": "object",
             "properties": {
-                "mode": {"type": "string", "enum": ["fanout", "verify"], "description": "fanout: run tasks in parallel and synthesize · verify: refute findings adversarially"},
-                "tasks": {"type": "array", "maxItems": 32, "description": "fanout mode: the tasks to run concurrently (request what the work needs; the harness bounds concurrent width by machine)", "items": {"type": "object", "properties": {
+                "mode": {"type": "string", "enum": ["fanout", "verify"], "description": "fanout: parallel tasks + synthesize · verify: refute findings"},
+                "tasks": {"type": "array", "maxItems": 32, "description": "fanout mode: tasks to run concurrently", "items": {"type": "object", "properties": {
                     "id": {"type": "string"},
                     "prompt": {"type": "string", "description": "complete, self-contained task"},
-                    "role": {"type": "string", "enum": ["coder", "planner", "reviewer", "tester"], "description": "default reviewer (read-only); set coder/tester explicitly, at most one writer per workflow"},
+                    "role": {"type": "string", "enum": ["coder", "planner", "reviewer", "tester"], "description": "default reviewer (read-only); at most one writer per workflow"},
                     "agent": {"type": "string", "description": "optional specialist slug from <agents>"},
                     "model": {"type": "string"}
                 }, "required": ["prompt"], "additionalProperties": false}},
                 "synthesis": {"type": "string", "description": "fanout mode: optional merge instruction"},
-                "findings": {"type": "array", "maxItems": 32, "items": {"type": "string"}, "description": "verify mode: claims to refute, each self-contained with file:line evidence"}
+                "findings": {"type": "array", "maxItems": 32, "items": {"type": "string"}, "description": "verify mode: claims to refute, each with file:line evidence"}
             },
             "required": ["mode"],
             "additionalProperties": false
