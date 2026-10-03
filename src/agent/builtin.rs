@@ -1205,8 +1205,8 @@ impl Tool for MemorySearch {
             "properties": {
                 "query": {"type": "string", "description": "what to recall"},
                 "limit": {"type": "integer", "description": "max hits (default 5)"},
-                "scope": {"type": "string", "enum": ["current", "all", "global"], "description": "zones to search: current project + global (default), all zones, or global-only"},
-                "category": {"type": "string", "enum": ["bug-history", "failed-attempt", "success-pattern", "arch-decision", "command", "security-rule", "deploy-note", "codebase"], "description": "restrict to one KIND of project knowledge (optional) — e.g. only past bugs, or only what previously FAILED so you don't retry a dead end"}
+                "scope": {"type": "string", "enum": ["current", "all", "global"], "description": "zones to search (default: current project + global)"},
+                "category": {"type": "string", "enum": ["bug-history", "failed-attempt", "success-pattern", "arch-decision", "command", "security-rule", "deploy-note", "codebase"], "description": "restrict to one kind of knowledge (optional)"}
             },
             "required": ["query"],
             "additionalProperties": false
@@ -1384,7 +1384,7 @@ impl Tool for MemoryList {
         serde_json::json!({
             "type": "object",
             "properties": {
-                "scope": {"type": "string", "enum": ["current", "all", "global", "project"], "description": "zones to list: current project + global (default), every zone, global-only, or this project only"},
+                "scope": {"type": "string", "enum": ["current", "all", "global", "project"], "description": "zones to list (default: current project + global)"},
                 "type": {"type": "string", "enum": ["user", "feedback", "project", "reference"], "description": "restrict to one memory type (optional)"},
                 "limit": {"type": "integer", "description": "max entries (default 50, max 200)"},
                 "include_archived": {"type": "boolean", "description": "list the recoverable archive instead of the live store (default false)"}
@@ -1460,9 +1460,9 @@ impl Tool for MemorySave {
             "type": "object",
             "properties": {
                 "name": {"type": "string", "description": "short, unique, kebab-case-ish title — becomes the id"},
-                "body": {"type": "string", "description": "the fact itself, self-contained (a reader with no chat context must understand it); use absolute dates, not 'yesterday'"},
+                "body": {"type": "string", "description": "the fact itself, self-contained; use absolute dates, not 'yesterday'"},
                 "description": {"type": "string", "description": "one-line summary used for recall ranking (optional)"},
-                "type": {"type": "string", "enum": ["user", "feedback", "project", "reference"], "description": "user = who they are; feedback = how they want you to work; project = this codebase's state/goals; reference = external pointers. Default project."},
+                "type": {"type": "string", "enum": ["user", "feedback", "project", "reference"], "description": "fact kind (default project)"},
                 "scope": {"type": "string", "description": "'global' for a fact true in every workspace; omit (or 'project') to scope it to the current project"}
             },
             "required": ["name", "body"],
@@ -3222,7 +3222,7 @@ impl Tool for ShellRun {
             "properties": {
                 "command": {"type": "string"},
                 "cwd": {"type": "string", "description": "optional working dir for the command (a subdir, or a ../ or absolute path elsewhere)"},
-                "network": {"type": "boolean", "description": "request network access (default false — the sandbox denies child sockets where the platform can enforce it). Approval-gated escalation."}
+                "network": {"type": "boolean", "description": "request network access (default false; approval-gated)"}
             },
             "required": ["command"],
             "additionalProperties": false
@@ -3654,14 +3654,12 @@ impl Tool for PersonaCreate {
         "persona_create"
     }
     fn description(&self) -> &str {
-        "Create a character persona (a role-play identity: name + role + voice + backstory) and, by \
-         default, switch to it. Call this — do NOT just reply in prose — whenever the user asks you \
-         to BE / become / invent a character, OR PASTES a character card / system prompt / persona \
-         description and says make/create/save/turn-this-into a character. In the paste case, EXTRACT \
-         the name (invent a fitting one if none) and rewrite the pasted text into `body` (values, \
-         manner, how they speak, boundaries); don't ask for details you can infer from the paste. A \
-         switch takes full effect from the user's next message. Not for facts about the user → use \
-         memory. Writes to ~/.aizen/personas (the user confirms)."
+        "Create a character persona (name + role + voice + backstory) and, by default, switch to \
+         it. Call this — do NOT just reply in prose — when the user asks you to BE / invent a \
+         character, OR PASTES a character card and says make/save it a character. In the paste \
+         case, EXTRACT the name (invent one if none) and rewrite the paste into `body`; don't \
+         ask for details you can infer. A switch takes effect from the user's next message. Not \
+         for facts about the user → use memory. (user confirms)"
     }
     fn parameters(&self) -> Value {
         serde_json::json!({
@@ -3807,7 +3805,7 @@ mod tests {
         // The default registry is the CORE top-level surface. Delegation and persona tools are
         // appended by `default_registry_with_task`; keeping this test explicit prevents a new core
         // tool from silently consuming the budget reserved for those conditional additions.
-        const TOTAL_CEILING: usize = 31_000; // measured core surface after trimming file_glob
+        const TOTAL_CEILING: usize = 26_000; // measured 24_340 after schema diet; +~7% headroom
         const PER_TOOL_CEILING: usize = 1_400; // no single tool should dwarf the rest
 
         let root = temp_root("schema-budget");
@@ -3858,7 +3856,7 @@ mod tests {
         // The previous ratchet stopped at `default_registry_in`, but the actual interactive registry
         // appends delegation/persona and (by default) LSP schemas afterwards. Measure that real
         // maximal shape too; otherwise adding a 2 KB task schema can pass the 31 KB core test forever.
-        const TOTAL_CEILING: usize = 45_000;
+        const TOTAL_CEILING: usize = 31_000; // measured 28_903 after schema diet; +~7% headroom
         const PER_TOOL_CEILING: usize = 2_400;
         let root = temp_root("schema-top-level");
         let mut registry = default_registry_in(&root);

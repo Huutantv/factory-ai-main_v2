@@ -97,11 +97,10 @@ impl Tool for SearchFiles {
         "search_files"
     }
     fn description(&self) -> &str {
-        "Search file CONTENT by regular expression (`path` may be a ../ or absolute dir elsewhere). \
-         Respects .gitignore and skips hidden + binary files unless hidden:true. Returns \
-         `path:line: matched text`; context:N adds ±N surrounding lines (grep -C) so a follow-up \
-         file_read is rarely needed. The canonical content search — do NOT shell out to \
-         grep/ripgrep; file_glob matches NAMES, not content. Read-only."
+        "Search file CONTENT by regex. Respects .gitignore; skips hidden + binary files unless \
+         hidden:true. Returns `path:line: matched text`; context:N adds surrounding lines so a \
+         follow-up file_read is rarely needed. Do NOT shell out to grep/ripgrep; file_glob \
+         matches NAMES, not content. Read-only."
     }
     fn parameters(&self) -> Value {
         serde_json::json!({

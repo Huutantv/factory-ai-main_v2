@@ -3572,12 +3572,11 @@ impl crate::agent::tools::Tool for Checkpoint {
         "checkpoint"
     }
     fn description(&self) -> &str {
-        "Time Machine writes, by `action`. `save`: pin a restore point before high-risk work (the \
-         runtime already auto-checkpoints around edits — don't duplicate). `rewind`: undo THIS \
-         run's edits to an anchor (`target`, max 2/run) when the approach broke the tree. \
-         `restore`: go back to a checkpoint `id`, including from an earlier turn, which rewind \
-         cannot reach. Files change on disk, chat does not — re-read afterwards. To look first, \
-         use `checkpoint_view`."
+        "Time Machine writes, by `action`. `save`: pin a restore point before high-risk work \
+         (the runtime already auto-checkpoints — don't duplicate). `rewind`: undo THIS run's \
+         edits to an anchor (`target`, max 2/run) when the approach broke the tree. `restore`: \
+         go back to a checkpoint `id`, including from an earlier turn. Re-read files afterwards. \
+         To look first, use `checkpoint_view`."
     }
     fn parameters(&self) -> serde_json::Value {
         serde_json::json!({

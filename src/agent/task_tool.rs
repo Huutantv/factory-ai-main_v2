@@ -571,27 +571,24 @@ impl Tool for TaskTool {
         "task"
     }
     fn description(&self) -> &str {
-        "Dispatch exactly ONE bounded sub-agent (fresh context) and return its result. Use for a \
-         focused investigation or contained implementation with one clear scope. For independent \
-         angles, file groups, or error groups use `workflow` instead: read-only children fan out, while \
-         coder/tester children stay serial on the shared working tree. Do not hand one child a \
-         whole-repository cleanup. The child cannot dispatch further sub-agents. Prefer a named \
-         specialist via `agent` when one fits; otherwise choose coder (read/edit/shell), tester \
-         (shell, no edit), or planner/reviewer (read-only)."
+        "Dispatch ONE bounded sub-agent (fresh context) and return its result. For independent \
+         angles use `workflow` instead. The child cannot dispatch further. Prefer a named \
+         specialist via `agent`; otherwise coder (read/edit/shell), tester (shell, no edit), \
+         or planner/reviewer (read-only)."
     }
     fn parameters(&self) -> Value {
         serde_json::json!({
             "type": "object",
             "properties": {
                 "prompt": {"type": "string", "description": "the complete, self-contained task for the sub-agent"},
-                "agent": {"type": "string", "description": "optional specialist slug from <agents> (e.g. \"code-reviewer\"); when set and it resolves, it supersedes role and decides the tool scope"},
+                "agent": {"type": "string", "description": "optional specialist slug from <agents>; when it resolves, it supersedes role"},
                 "role": {"type": "string", "enum": ["coder", "planner", "reviewer", "tester"], "description": "generic sub-agent role (default coder); used when no agent is given (or it doesn't resolve)"},
                 "model": {"type": "string", "description": "optional model override for the sub-agent"},
-                "label": {"type": "string", "description": "short tag echoed in the result header — attribution when dispatching several tasks"},
+                "label": {"type": "string", "description": "short tag echoed in the result header"},
                 "boundaries": {"type": "string", "description": "what the sub-agent must NOT do or touch"},
                 "expected_output": {"type": "string", "description": "the shape/content of the answer you want back"},
-                "max_steps": {"type": "integer", "description": "TOTAL model-step budget for this child (default 25, cap 80); use workflow instead of raising this for independent work"},
-                "expects": {"type": "object", "description": "JSON Schema the final answer must satisfy — the sub-agent replies with ONLY a JSON object and the harness validates it (result header shows json:ok|invalid)"}
+                "max_steps": {"type": "integer", "description": "model-step budget for this child (default 25, cap 80)"},
+                "expects": {"type": "object", "description": "JSON Schema the final answer must satisfy (validated by the harness)"}
             },
             "required": ["prompt"],
             "additionalProperties": false

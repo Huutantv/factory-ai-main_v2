@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 // No explicit `name` — clap uses the binary name (`fauto`) for `--version` and usage output.
 #[command(
     name = "fauto",
-    version = "F.Auto 1.7.7",
+    version = "F.Auto 1.7.8",
     about = "F.Auto agentic CLI — streaming chat + a self-learning memory brain"
 )]
 pub(crate) struct Cli {

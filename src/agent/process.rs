@@ -435,10 +435,9 @@ impl Tool for Process {
         "process"
     }
     fn description(&self) -> &str {
-        "Run and manage LONG-RUNNING background commands (dev servers, watchers, long builds) that \
-         shell_run's cap would kill. action=start returns a proc_<n> handle; then wait (blocks \
-         until exit), log (cursor=<next_cursor> → only new output), status/kill/write. Use \
-         shell_run for quick commands. Handles are private to this agent."
+        "Manage LONG-RUNNING background commands (dev servers, watchers, long builds). \
+         start returns a proc_<n> handle; then wait/log/status/kill/write. Params marked \
+         [start]/[log,wait]/[write] apply to those actions only. Use shell_run for quick commands."
     }
     fn parameters(&self) -> Value {
         serde_json::json!({
@@ -446,14 +445,14 @@ impl Tool for Process {
             "additionalProperties": false,
             "properties": {
                 "action": {"type": "string", "enum": ["start", "list", "log", "status", "wait", "kill", "write"]},
-                "command": {"type": "string", "description": "the command (action=start)"},
-                "cwd": {"type": "string", "description": "optional working dir (subdir, ../ or absolute) (action=start)"},
-                "network": {"type": "boolean", "description": "request network access (action=start; default false; approval-gated). Any socket — even binding a port — needs it."},
-                "id": {"type": "string", "description": "a proc_<n> handle (all actions except start/list)"},
-                "cursor": {"type": "integer", "description": "resume point from a previous next_cursor; returns only newer output (action=log/wait)"},
-                "timeout_secs": {"type": "integer", "description": "max seconds to block (action=wait; default 30)"},
-                "input": {"type": "string", "description": "text for the process stdin (action=write)"},
-                "enter": {"type": "boolean", "description": "append newline (action=write; default true)"}
+                "command": {"type": "string", "description": "the command [start]"},
+                "cwd": {"type": "string", "description": "optional working dir [start]"},
+                "network": {"type": "boolean", "description": "request network access [start] (default false; approval-gated)"},
+                "id": {"type": "string", "description": "a proc_<n> handle (all except start/list)"},
+                "cursor": {"type": "integer", "description": "resume point from a previous next_cursor [log/wait]"},
+                "timeout_secs": {"type": "integer", "description": "max seconds to block [wait] (default 30)"},
+                "input": {"type": "string", "description": "text for the process stdin [write]"},
+                "enter": {"type": "boolean", "description": "append newline [write] (default true)"}
             },
             "required": ["action"]
         })
